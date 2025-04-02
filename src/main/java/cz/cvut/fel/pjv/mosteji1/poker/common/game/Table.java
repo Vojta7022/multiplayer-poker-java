@@ -28,7 +28,7 @@ public class Table {
     public void postBlinds() {
         if (players.size() < 2) return;
         int smallBlind = 10;
-        System.out.println(players.get(0).toString() + " posts small blind: " + smallBlind);
+        System.out.println(players.getFirst().toString() + " posts small blind: " + smallBlind);
         players.get(0).placeBet(smallBlind);
         int bigBlind = 20;
         System.out.println(players.get(1).toString() + " posts big blind: " + bigBlind);
