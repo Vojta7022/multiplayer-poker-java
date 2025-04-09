@@ -1,6 +1,6 @@
-package com.poker.server;
+package cz.cvut.fel.pjv.mosteji1.poker.server;
 
-import cz.cvut.fel.pjv.mosteji1.poker.common.server.ClientHandler;
+import cz.cvut.fel.pjv.mosteji1.poker.server.ClientHandler;
 
 import java.io.IOException;
 import java.net.ServerSocket;

@@ -1,4 +1,4 @@
-package cz.cvut.fel.pjv.mosteji1.poker.common.server;
+package cz.cvut.fel.pjv.mosteji1.poker.server;
 
 import java.io.*;
 import java.net.Socket;

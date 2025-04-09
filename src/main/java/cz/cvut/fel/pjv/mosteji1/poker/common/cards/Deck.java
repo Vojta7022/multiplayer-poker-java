@@ -5,16 +5,16 @@ import java.util.Collections;
 import java.util.List;
 
 public class Deck {
-    private final List<Card> cards;
+    private final List<Card> cards = new ArrayList<>();
 
     public Deck() {
-        cards = new ArrayList<>();
         for (Suit suit : Suit.values()) {
             for (Rank rank : Rank.values()) {
                 cards.add(new Card(rank, suit));
             }
         }
-        shuffle();
+        this.shuffle();
+
     }
 
     public void shuffle() {
