@@ -5,14 +5,14 @@ import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
 import java.io.*;
 import java.net.Socket;
 
-public class serverEndpoint {
+public class ServerEndpoint {
     private final Socket clientSocket;
     private BufferedReader input;
     private PrintWriter output;
     private boolean isActive;
     private Server server;
 
-    public serverEndpoint(Socket socket, Server server) {
+    public ServerEndpoint(Socket socket, Server server) {
         this.clientSocket = socket;
         this.server = server;
         this.isActive = true;
@@ -55,7 +55,9 @@ public class serverEndpoint {
         // Zde přidej logiku pro různé typy zpráv od klienta
         // Například: příkazy pro sázky, zobrazení karet, kontrolu hry apod.
 
-        switch (message.toLowerCase()) {
+        String[] messageParts = message.split(" ");
+
+        switch (messageParts[0]) {
             case "bet":
                 // Zpracování sázky
                 break;

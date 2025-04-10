@@ -10,6 +10,7 @@ public class Player {
     private final List<Card> hand;
     private int chips;
     private boolean folded;
+    private int bet;
 
     public Player(String name, int startingChips) {
         this.name = name;
@@ -22,19 +23,14 @@ public class Player {
         hand.add(card);
     }
 
-    public void placeBet(int amount) {
-        if (amount <= chips) {
-            chips -= amount;
-            System.out.println(name + " bets " + amount + " chips.");
-        } else {
-            System.out.println(name + " does not have enough chips!");
-        }
-
-    }
-
     public void fold() {
         folded = true;
         System.out.println(name + " folds.");
+    }
+
+    public void discardCards() {
+        hand.clear();
+        bet = 0;
     }
 
     public boolean hasFolded() {
@@ -47,6 +43,22 @@ public class Player {
 
     public int getChips() {
         return chips;
+    }
+
+    public int getBet() {
+        return bet;
+    }
+
+    public void setBet(int bet) {
+        this.bet = bet;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setChips(int chips) {
+        this.chips = chips;
     }
 
     @Override

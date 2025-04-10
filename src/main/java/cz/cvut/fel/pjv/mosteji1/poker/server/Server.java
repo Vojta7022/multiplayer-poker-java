@@ -1,7 +1,7 @@
 package cz.cvut.fel.pjv.mosteji1.poker.server;
 
 import cz.cvut.fel.pjv.mosteji1.poker.common.game.Table;
-import cz.cvut.fel.pjv.mosteji1.poker.server.network.serverEndpoint;
+import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -11,8 +11,8 @@ import java.util.List;
 
 public class Server {
 
-    private static final int PORT = 12345;  // Port pro server
-    private List<serverEndpoint> serverEndpoints;  // Seznam všech připojených klientů
+    private static final int POnRT = 12345;  // Port pro server
+    private List<ServerEndpoint> serverEndpoints;  // Seznam všech připojených klientů
     private ServerSocket serverSocket;
     private Table table;
 
@@ -23,8 +23,8 @@ public class Server {
     public void startServer() {
         try {
             // Otevření serverového socketu
-            serverSocket = new ServerSocket(PORT);
-            System.out.println("Server spuštěn na portu " + PORT);
+            serverSocket = new ServerSocket(POnRT);
+            System.out.println("Server spuštěn na portu " + POnRT);
 
             // Akceptování připojení klientů
             while (true) {
@@ -32,7 +32,7 @@ public class Server {
                 System.out.println("Nový klient připojen: " + clientSocket.getInetAddress());
 
                 // Vytvoření a spuštění nového klienta (Handler)
-                serverEndpoint serverEndpoint = new serverEndpoint(clientSocket, this);
+                ServerEndpoint serverEndpoint = new ServerEndpoint(clientSocket, this);
                 addClientHandler(serverEndpoint);
 
                 // Spuštění nového vlákna pro komunikaci s klientem
@@ -43,21 +43,21 @@ public class Server {
         }
     }
 
-    public void addClientHandler(serverEndpoint serverEndpoint) {
+    public void addClientHandler(ServerEndpoint serverEndpoint) {
         serverEndpoints.add(serverEndpoint);
         System.out.println("Přidán nový klient.");
     }
 
     public void broadcastMessage(String message) {
         // Poslání zprávy všem připojeným klientům
-        for (serverEndpoint serverEndpoint : serverEndpoints) {
+        for (ServerEndpoint serverEndpoint : serverEndpoints) {
             if (serverEndpoint.isActive()) {
                 serverEndpoint.sendMessage(message);
             }
         }
     }
 
-    public void sendMessageToClient(serverEndpoint serverEndpoint, String message) {
+    public void sendMessageToClient(ServerEndpoint serverEndpoint, String message) {
         // Poslání zprávy konkrétnímu klientovi
         serverEndpoint.sendMessage(message);
     }

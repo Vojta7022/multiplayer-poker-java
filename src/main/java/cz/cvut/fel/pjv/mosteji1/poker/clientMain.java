@@ -1,5 +1,6 @@
 package cz.cvut.fel.pjv.mosteji1.poker;
 
+import cz.cvut.fel.pjv.mosteji1.poker.client.Client;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.*;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -16,6 +17,7 @@ public class clientMain extends Application {
     @Override
     public void start(Stage stage) throws IOException {
 
+        Client client = new Client();
         Card myCard = new Card(Rank.FIVE, Suit.CLUBS);
         Deck myDeck = new Deck();
         Card[] cardSeptuple = new Card[] {myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard()};

@@ -9,15 +9,13 @@ import java.util.List;
 import java.util.Scanner;
 
 public class Table {
-    private final List<Player> players;
-    private final Deck deck;
-    private final List<Card> communityCards;
+    private List<Player> players;
     private final Scanner scanner;
+    private TableRound currentRound;
+    private int currentDealerIndex;
 
     public Table() {
         this.players = new ArrayList<>();
-        this.deck = new Deck();
-        this.communityCards = new ArrayList<>();
         this.scanner = new Scanner(System.in);
     }
 
@@ -25,86 +23,19 @@ public class Table {
         players.add(player);
     }
 
-    public void postBlinds() {
-        if (players.size() < 2) return;
-        int smallBlind = 10;
-        System.out.println(players.getFirst().toString() + " posts small blind: " + smallBlind);
-        players.get(0).placeBet(smallBlind);
-        int bigBlind = 20;
-        System.out.println(players.get(1).toString() + " posts big blind: " + bigBlind);
-        players.get(1).placeBet(bigBlind);
-    }
-
-    public void dealHoleCards() {
+    public void newRound() {
         for (Player player : players) {
-            player.receiveCard(deck.dealCard());
-            player.receiveCard(deck.dealCard());
+            player.discardCards();
         }
+        currentRound = new TableRound(this);
     }
 
-    public void dealFlop() {
-        communityCards.add(deck.dealCard());
-        communityCards.add(deck.dealCard());
-        communityCards.add(deck.dealCard());
-    }
-
-    public void dealTurn() {
-        communityCards.add(deck.dealCard());
-    }
-
-    public void dealRiver() {
-        communityCards.add(deck.dealCard());
-    }
-
-    public void bettingRound() {
-        int highestBet = 0;
-        boolean bettingActive;
-        do {
-            bettingActive = false;
-            for (Player player : players) {
-                if (player.hasFolded()) continue;
-                System.out.println(player + "'s turn. Current highest bet: " + highestBet);
-                System.out.println("Choose action: check (c), call (o), raise (r), fold (f)");
-                String action = scanner.next();
-
-                switch (action) {
-                    case "c":
-                        if (highestBet == 0) {
-                            System.out.println(player + " checks.");
-                        } else {
-                            System.out.println("Cannot check, must call or raise.");
-                        }
-                        break;
-                    case "o":
-                        if (highestBet > 0) {
-                            player.placeBet(highestBet);
-                        } else {
-                            System.out.println("Nothing to call, choose a different action.");
-                        }
-                        break;
-                    case "r":
-                        System.out.println("Enter raise amount: ");
-                        int raiseAmount = scanner.nextInt();
-                        highestBet += raiseAmount;
-                        player.placeBet(highestBet);
-                        bettingActive = true;
-                        break;
-                    case "f":
-                        player.fold();
-                        break;
-                    default:
-                        System.out.println("Invalid action.");
-                }
-            }
-        } while (bettingActive);
-    }
-
-    public List<Card> getCommunityCards() {
-        return communityCards;
+    public List<Player> getPlayers() {
+        return players;
     }
 
     @Override
     public String toString() {
-        return "Table with players: " + players + "\nCommunity Cards: " + communityCards;
+        return "Table with players: " + players + "\nCommunity Cards: " + currentRound.getCommunityCards();
     }
 }
