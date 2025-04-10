@@ -263,6 +263,7 @@ public class CardCombo implements Comparable<CardCombo> {
             }
         }
         if (pair == -1) return false;
+        kickers[0] = pair;
 
         int kickerIndex = 1;
         for (int kicker = Rank.ACE.ordinal() ; kicker >= Rank.TWO.ordinal() ; kicker--) {

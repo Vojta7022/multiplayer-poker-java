@@ -1,17 +1,18 @@
-package cz.cvut.fel.pjv.mosteji1.poker.server;
+package cz.cvut.fel.pjv.mosteji1.poker.server.network;
+
+import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
 
 import java.io.*;
 import java.net.Socket;
-import com.poker.server.Server;
 
-public class ClientHandler {
+public class serverEndpoint {
     private final Socket clientSocket;
     private BufferedReader input;
     private PrintWriter output;
     private boolean isActive;
     private Server server;
 
-    public ClientHandler(Socket socket, Server server) {
+    public serverEndpoint(Socket socket, Server server) {
         this.clientSocket = socket;
         this.server = server;
         this.isActive = true;

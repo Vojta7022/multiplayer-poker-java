@@ -29,6 +29,7 @@ public class Player {
         } else {
             System.out.println(name + " does not have enough chips!");
         }
+
     }
 
     public void fold() {
