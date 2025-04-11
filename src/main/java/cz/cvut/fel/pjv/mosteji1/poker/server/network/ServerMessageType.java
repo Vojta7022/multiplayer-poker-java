@@ -3,7 +3,8 @@ package cz.cvut.fel.pjv.mosteji1.poker.server.network;
 public enum ServerMessageType {
     TABLE_UPDATE("TABLE_UPDATE"),
     SERVER_FAIL("SERVER_FAIL"),
-    PLAYER_WON("PLAYER_WON"),;
+    PLAYER_WON("PLAYER_WON"),
+    BETTING_TURN("BETTING_TURN"),;
 
     public final String message;
 

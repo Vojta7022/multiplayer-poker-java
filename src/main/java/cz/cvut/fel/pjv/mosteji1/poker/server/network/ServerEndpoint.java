@@ -81,6 +81,10 @@ public class ServerEndpoint {
         output.println(message);
     }
 
+    public String getName() {
+        return clientSocket.getInetAddress().getHostName();
+    }
+
     public boolean isActive() {
         return isActive;
     }

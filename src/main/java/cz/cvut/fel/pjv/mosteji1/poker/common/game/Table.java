@@ -3,6 +3,7 @@ package cz.cvut.fel.pjv.mosteji1.poker.common.game;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Deck;
 import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
+import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,9 +15,17 @@ public class Table {
     private TableRound currentRound;
     private int currentDealerIndex;
 
-    public Table() {
+    public Table(List<ServerEndpoint> endpoints) {
         this.players = new ArrayList<>();
         this.scanner = new Scanner(System.in);
+        this.currentDealerIndex = 0;
+        this.currentRound = new TableRound(this, currentDealerIndex);
+
+        for (ServerEndpoint endpoint : endpoints) {
+            Player player = new Player(endpoint.getName(), 1000);
+            players.add(player);
+
+        }
     }
 
     public void addPlayer(Player player) {
@@ -27,7 +36,7 @@ public class Table {
         for (Player player : players) {
             player.discardCards();
         }
-        currentRound = new TableRound(this);
+        currentRound = new TableRound(this, currentDealerIndex);
     }
 
     public List<Player> getPlayers() {

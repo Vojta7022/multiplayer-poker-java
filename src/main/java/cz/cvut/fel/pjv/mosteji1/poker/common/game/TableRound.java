@@ -4,7 +4,6 @@ import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Deck;
 import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -15,16 +14,13 @@ public class TableRound {
     private List<Player> players;
     private int potSize;
     private Table parentTable;
+    private int dealerIndex;
 
-
-
-    private final Scanner scanner;
-
-    TableRound(Table parentTable) {
+    TableRound(Table parentTable, int dealerIndex) {
         this.deck = new Deck();
         this.communityCards = new ArrayList<>();
+        this.parentTable = parentTable;
         this.players = parentTable.getPlayers();
-        scanner = new Scanner(System.in);
     }
 
     public boolean placeBet(int amount, Player player) {
@@ -42,12 +38,27 @@ public class TableRound {
 
     public void postBlinds() {
         if (players.size() < 2) return;
-        int smallBlind = 10;
-        System.out.println(players.getFirst().toString() + " posts small blind: " + smallBlind);
-        placeBet(smallBlind, players.getFirst());
-        int bigBlind = 20;
-        placeBet(bigBlind, players.get(1));
 
+        Player smallBlind = players.get((dealerIndex + 1) % players.size());
+        Player bigBlind = players.get((dealerIndex + 2) % players.size());
+
+        int smallBlindAmount = GameParameters.SMALL_BLIND.value;
+        int bigBlindAmount = GameParameters.BIG_BLIND.value;
+        placeBet(smallBlindAmount, smallBlind);
+        placeBet(bigBlindAmount, bigBlind);
+
+        System.out.println("Small blind: " + smallBlind.getName() + " posts " + smallBlindAmount);
+        System.out.println("Big blind: " + bigBlind.getName() + " posts " + bigBlindAmount);
+    }
+
+    public void bettingRound() {
+        for (Player player : players) {
+            if (!player.hasFolded()) {
+                player.getEndpoint().sendMessage("Your turn to bet. Current bet: " + minimumValidBet(player));
+                int bet = 0; // Get bet from player
+                placeBet(bet, player);
+            }
+        }
     }
 
     public void dealHoleCards() {
@@ -71,55 +82,6 @@ public class TableRound {
         communityCards.add(deck.dealCard());
     }
 
-    public void bettingRound() {
-        int highestBet = 0;
-        boolean bettingActive;
-        do {
-            bettingActive = false;
-            for (Player player : players) {
-                if (player.hasFolded()) continue;
-                System.out.println(player + "'s turn. Current highest bet: " + highestBet);
-                System.out.println("Choose action: check (c), call (o), raise (r), fold (f)");
-                String action = scanner.next();
-
-                switch (action) {
-                    case "c":
-                        if (highestBet == 0) {
-                            System.out.println(player + " checks.");
-                        } else {
-                            System.out.println("Cannot check, must call or raise.");
-                        }
-                        break;
-                    case "o":
-                        if (highestBet > 0) {
-                            placeBet(highestBet, player);
-                        } else {
-                            System.out.println("Nothing to call, choose a different action.");
-                        }
-                        break;
-                    case "r":
-                        System.out.println("Enter raise amount: ");
-                        int raiseAmount = scanner.nextInt();
-                        highestBet += raiseAmount;
-                        placeBet(raiseAmount, player);
-                        bettingActive = true;
-                        break;
-                    case "f":
-                        player.fold();
-                        break;
-                    default:
-                        System.out.println("Invalid action.");
-                }
-            }
-        } while (bettingActive);
-    }
-
-    /**
-     *
-     * @param player
-     * @return
-     *
-     */
     public int minimumValidBet(Player player) {
         int betPerPlayer = 0;
         for (Player otherPlayer : players) {
@@ -130,5 +92,9 @@ public class TableRound {
 
     public List<Card> getCommunityCards() {
         return communityCards;
+    }
+
+    public void playRound() {
+        postBlinds();
     }
 }
