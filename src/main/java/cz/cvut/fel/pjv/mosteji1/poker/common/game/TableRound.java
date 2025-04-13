@@ -3,8 +3,8 @@ package cz.cvut.fel.pjv.mosteji1.poker.common.game;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Deck;
 import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
+import cz.cvut.fel.pjv.mosteji1.poker.myUtils.MyUtils;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -14,16 +14,17 @@ public class TableRound {
     private final List<Card> communityCards;
     private List<Player> players;
     private int potSize;
+    private int currentDealerIndex;
     private Table parentTable;
 
 
 
     private final Scanner scanner;
 
-    TableRound(Table parentTable) {
+    TableRound(Table parentTable, int currentDealerIndex) {
         this.deck = new Deck();
         this.communityCards = new ArrayList<>();
-        this.players = parentTable.getPlayers();
+        this.players = MyUtils.rotateList(parentTable.getPlayers(), currentDealerIndex);
         scanner = new Scanner(System.in);
     }
 

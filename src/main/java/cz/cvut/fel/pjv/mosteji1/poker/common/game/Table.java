@@ -14,7 +14,7 @@ public class Table {
     private final Scanner scanner;
     private TableRound currentRound;
     private int currentDealerIndex;
-    private int potSize;
+
 
     public Table(List<ServerEndpoint> endpoints) {
         this.players = new ArrayList<>();
@@ -29,15 +29,54 @@ public class Table {
         }
     }
 
+    private Player getNextRoundsWinner() {
+        currentRound = initNewRound();
+        currentRound.postBlinds();
+        currentRound.dealHoleCards();
+
+        for (int i = 0; i < players.size(); i++) {
+            players.get((i + currentDealerIndex + 2) % players.size()).getBet();
+        }
+
+        letPlayersBet();
+        /* if only one player remains, return them */
+
+        currentRound.dealFlop();
+        letPlayersBet();
+        /* if only one player remains, return them */
+
+        currentRound.dealTurn();
+        letPlayersBet();
+        /* if only one player remains, return them */
+
+        currentRound.dealRiver();
+        letPlayersBet();
+        /* if only one player remains, return them */
+        return players.get(currentDealerIndex); // replace with player with the strongest CardCombo
+
+    }
+
+    private void letPlayersBet() {
+        while (true /* There is a player who hasnt folded and hasnt bet enough */) {
+            /* Cycle through players and let them bet*/
+
+        }
+    }
+
+
+
+
     public void addPlayer(Player player) {
         players.add(player);
     }
 
-    public void newRound() {
+    private TableRound initNewRound() {
+
+        currentDealerIndex = (currentDealerIndex + 1) % players.size();
         for (Player player : players) {
             player.discardCards();
         }
-        currentRound = new TableRound(this, currentDealerIndex);
+        return new TableRound(this, currentDealerIndex);
     }
 
     public List<Player> getPlayers() {
