@@ -13,6 +13,7 @@ public class Table {
     private final Scanner scanner;
     private TableRound currentRound;
     private int currentDealerIndex;
+    private int potSize;
 
     public Table() {
         this.players = new ArrayList<>();
@@ -34,8 +35,14 @@ public class Table {
         return players;
     }
 
+
+
     @Override
     public String toString() {
         return "Table with players: " + players + "\nCommunity Cards: " + currentRound.getCommunityCards();
+    }
+
+    public int getCurrentDealerIndex() {
+        return currentDealerIndex;
     }
 }

@@ -10,10 +10,9 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 
 
-public class clientMain extends Application {
+public class ClientMain extends Application {
     @Override
     public void start(Stage stage) throws IOException {
 

@@ -1,6 +1,8 @@
 package cz.cvut.fel.pjv.mosteji1.poker.server.network;
 
 public enum ServerMessageType {
+    JOIN_ACCEPT("JOIN_ACCEPT"),
+
     TABLE_UPDATE("TABLE_UPDATE"),
     SERVER_FAIL("SERVER_FAIL"),
     PLAYER_WON("PLAYER_WON"),;
