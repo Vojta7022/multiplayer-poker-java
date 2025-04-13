@@ -11,7 +11,7 @@ import java.util.List;
 
 public class Server {
 
-    private static final int POnRT = 12345;  // Port pro server
+    private static final int PORT = 12345;  // Port pro server
     private List<ServerEndpoint> serverEndpoints;  // Seznam všech připojených klientů
     private ServerSocket serverSocket;
     private Table table;
@@ -23,8 +23,8 @@ public class Server {
     public void startServer() {
         try {
             // Otevření serverového socketu
-            serverSocket = new ServerSocket(POnRT);
-            System.out.println("Server spuštěn na portu " + POnRT);
+            serverSocket = new ServerSocket(PORT);
+            System.out.println("Server spuštěn na portu " + PORT);
 
             // Akceptování připojení klientů
             while (true) {
@@ -63,9 +63,27 @@ public class Server {
     }
 
     public void startGame() {
-        // Tato metoda by mohla spustit hru, rozdání karet, začátek sázek apod.
-        table = new Table();
-        broadcastMessage("Hra začíná!");
-        // Další logika pro rozjezd hry...
+//        // Inicializace herního stolu
+//        table = new Table(serverEndpoints);
+//        table.initializeGame();
+//
+//        // Rozdání karet hráčům
+//        table.dealCardsToPlayers();
+//
+//        // Oznámení hráčům, že hra začíná
+//        broadcastMessage("Hra začíná! Karty byly rozdány.");
+//
+//        // Zahájení prvního kola sázek
+//        table.startBettingRound();
+//
+//        // Další logika hry (např. další kola sázek, odhalení karet, určení vítěze)
+//        while (!table.isGameOver()) {
+//            table.startBettingRound();
+//            table.revealNextCommunityCard();
+//        }
+//
+//        // Oznámení vítěze
+//        String winner = table.determineWinner();
+//        broadcastMessage("Hra skončila! Vítězem je: " + winner);
     }
 }

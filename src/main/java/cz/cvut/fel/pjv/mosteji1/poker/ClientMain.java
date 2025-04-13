@@ -1,47 +1,80 @@
 package cz.cvut.fel.pjv.mosteji1.poker;
 
-import cz.cvut.fel.pjv.mosteji1.poker.client.Client;
-import cz.cvut.fel.pjv.mosteji1.poker.common.cards.*;
+import cz.cvut.fel.pjv.mosteji1.poker.resources.graphics.PokerTableView;
 import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.layout.StackPane;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
-
-import java.io.IOException;
-import java.util.Arrays;
 
 
 public class ClientMain extends Application {
+
+    private Stage primaryStage;
+
     @Override
-    public void start(Stage stage) throws IOException {
+    public void start(Stage stage) {
+        this.primaryStage = stage;
+        showMenuScene();
+    }
 
-        Client client = new Client();
-        Card myCard = new Card(Rank.FIVE, Suit.CLUBS);
-        Deck myDeck = new Deck();
-        Card[] cardSeptuple = new Card[] {myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard(), myDeck.dealCard()};
-        CardCombo cardCombo = new CardCombo(cardSeptuple);
+    private void showMenuScene() {
+        VBox menuBox = new VBox(15);
+        menuBox.setAlignment(Pos.CENTER);
+        menuBox.setPadding(new Insets(50));
 
-        System.out.println("Cards:");
-        for (Card card : cardSeptuple) {
-            System.out.println(card);
+        TextField ipField = new TextField();
+        ipField.setPromptText("IP adresa");
+
+        TextField portField = new TextField();
+        portField.setPromptText("Port");
+
+        Button connectButton = new Button("Připojit se");
+
+        Label statusLabel = new Label();
+
+        connectButton.setOnAction(e -> {
+            String ip = ipField.getText();
+            String portStr = portField.getText();
+
+            // TODO: Zkusit navázat spojení
+            boolean connected = tryConnect(ip, portStr);
+
+            if (connected) {
+                showPokerTableScene();
+            } else {
+                statusLabel.setText("Nepodařilo se připojit.");
+            }
+        });
+
+        menuBox.getChildren().addAll(ipField, portField, connectButton, statusLabel);
+        Scene menuScene = new Scene(menuBox, 600, 400);
+        primaryStage.setTitle("Poker Client - Připojení");
+        primaryStage.setScene(menuScene);
+        primaryStage.show();
+    }
+
+    private boolean tryConnect(String ip, String portStr) {
+        // TODO: Reálná logika připojení přes socket
+        try {
+            int port = Integer.parseInt(portStr);
+            System.out.println("Připojuji se na IP: " + ip + ", port: " + port);
+            // Simulace úspěchu
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
         }
-        System.out.println(cardCombo.getHandRanking());
-        System.out.println(Arrays.toString(cardCombo.getKickers()));
+    }
 
-
-
-
-        Canvas canvas = new Canvas(800, 600);
-        StackPane root = new StackPane(canvas);
-        Scene scene = new Scene(root, 800, 600);
-        stage.setTitle("Hello!");
-        stage.setScene(scene);
-        stage.show();
+    private void showPokerTableScene() {
+        PokerTableView tableView = new PokerTableView();
+        Scene tableScene = new Scene(tableView);
+        primaryStage.setScene(tableScene);
     }
 
     public static void main(String[] args) {
         launch(args);
     }
 }
-

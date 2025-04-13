@@ -13,8 +13,8 @@ public class TableRound {
     private final Deck deck;
     private final List<Card> communityCards;
     private List<Player> players;
-    private final Table parentTable;
-    private final int dealerIndex;
+    private int potSize;
+    private Table parentTable;
 
 
 
@@ -23,11 +23,8 @@ public class TableRound {
     TableRound(Table parentTable) {
         this.deck = new Deck();
         this.communityCards = new ArrayList<>();
-        scanner = new Scanner(System.in);
-
-        this.parentTable = parentTable;
-        this.dealerIndex = parentTable.getCurrentDealerIndex();
         this.players = parentTable.getPlayers();
+        scanner = new Scanner(System.in);
     }
 
     public boolean placeBet(int amount, Player player) {
@@ -41,6 +38,7 @@ public class TableRound {
             return false;
         }
     }
+
 
     public void postBlinds() {
         if (players.size() < 2) return;

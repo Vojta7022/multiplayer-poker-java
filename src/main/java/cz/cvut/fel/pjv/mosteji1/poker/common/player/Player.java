@@ -1,12 +1,14 @@
 package cz.cvut.fel.pjv.mosteji1.poker.common.player;
 
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
+import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Player {
     private final String name;
+    private ServerEndpoint endpoint;
     private final List<Card> hand;
     private int chips;
     private boolean folded;
@@ -55,6 +57,10 @@ public class Player {
 
     public String getName() {
         return name;
+    }
+
+    public ServerEndpoint getEndpoint() {
+        return endpoint;
     }
 
     public void setChips(int chips) {

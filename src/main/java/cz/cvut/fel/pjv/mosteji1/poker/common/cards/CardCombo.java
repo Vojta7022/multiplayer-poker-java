@@ -62,7 +62,7 @@ public class CardCombo implements Comparable<CardCombo> {
         if (containsFullHouse()) {handRanking = HandRanking.FULL_HOUSE; return;}
         if (containsFlush()) {handRanking = HandRanking.FLUSH; return;}
         if (containsStraight()) {handRanking = HandRanking.STRAIGHT; return;}
-        if (containsThreeOfAKind()) {handRanking = HandRanking.THREE_OF_A_KIND; return;}        // TODO: zkonzultuj pár, dva páry a vysokou kartu s panem gpt
+        if (containsThreeOfAKind()) {handRanking = HandRanking.THREE_OF_A_KIND; return;}
         if (containsTwoPairs()) {handRanking = HandRanking.TWO_PAIRS; return;}
         if (containsPair()) {handRanking = HandRanking.PAIR; return;}
 
