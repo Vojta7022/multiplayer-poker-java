@@ -5,7 +5,7 @@ import java.util.stream.Stream;
 
 public abstract class MyUtils {
 
-    public static List rotateList(List list, int shift) {
+    public static <T> List<T> rotateList(List<T> list, int shift) {
         return Stream.concat(list.subList(shift, list.size()).stream(), list.subList(0, shift).stream()).toList();
     }
 }

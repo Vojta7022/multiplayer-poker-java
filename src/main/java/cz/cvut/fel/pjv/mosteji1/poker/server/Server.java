@@ -1,6 +1,6 @@
 package cz.cvut.fel.pjv.mosteji1.poker.server;
 
-import cz.cvut.fel.pjv.mosteji1.poker.common.game.Table;
+import cz.cvut.fel.pjv.mosteji1.poker.common.game.OldTable;
 import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
 
 import java.io.IOException;
@@ -14,10 +14,13 @@ public class Server {
     private static final int PORT = 12345;  // Port pro server
     private List<ServerEndpoint> serverEndpoints;  // Seznam všech připojených klientů
     private ServerSocket serverSocket;
-    private Table table;
+    private OldTable oldTable;
 
     public Server() {
         this.serverEndpoints = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            serverEndpoints.add(new ServerEndpoint(new Socket(), this));
+        }
     }
 
     public void startServer() {
@@ -85,5 +88,9 @@ public class Server {
 //        // Oznámení vítěze
 //        String winner = table.determineWinner();
 //        broadcastMessage("Hra skončila! Vítězem je: " + winner);
+    }
+
+    public List<ServerEndpoint> getServerEndpoints() {
+        return serverEndpoints;
     }
 }

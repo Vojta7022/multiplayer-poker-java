@@ -13,6 +13,7 @@ public class Player {
     private int chips;
     private boolean folded;
     private int bet;
+    private boolean isAllIn;
 
     public Player(String name, int startingChips) {
         this.name = name;
@@ -27,12 +28,15 @@ public class Player {
 
     public void fold() {
         folded = true;
-        System.out.println(name + " folds.");
     }
 
     public void discardCards() {
         hand.clear();
         bet = 0;
+    }
+
+    public void disconnect() {
+        endpoint = null;
     }
 
     public boolean hasFolded() {
@@ -67,8 +71,20 @@ public class Player {
         this.chips = chips;
     }
 
+    public boolean isAllIn() {
+        return isAllIn;
+    }
+
+    public void setAllIn(boolean allIn) {
+        isAllIn = allIn;
+    }
+
     @Override
     public String toString() {
         return name + " with hand: " + hand + " and chips: " + chips;
+    }
+
+    public void setFolded(boolean b) {
+        this.folded = b;
     }
 }

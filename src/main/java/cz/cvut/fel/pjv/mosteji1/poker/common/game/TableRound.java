@@ -15,16 +15,16 @@ public class TableRound {
     private List<Player> players;
     private int potSize;
     private int currentDealerIndex;
-    private Table parentTable;
+    private OldTable parentOldTable;
 
 
 
     private final Scanner scanner;
 
-    TableRound(Table parentTable, int currentDealerIndex) {
+    TableRound(OldTable parentOldTable, int currentDealerIndex) {
         this.deck = new Deck();
         this.communityCards = new ArrayList<>();
-        this.players = MyUtils.rotateList(parentTable.getPlayers(), currentDealerIndex);
+        this.players = MyUtils.rotateList(parentOldTable.getPlayers(), currentDealerIndex);
         scanner = new Scanner(System.in);
     }
 
