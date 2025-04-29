@@ -11,6 +11,7 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -60,6 +61,7 @@ public class ClientMain extends Application {
             String ip = MenuView.ipField.getText();
             String portStr = MenuView.portField.getText();
             String playerName = MenuView.playerNameField.getText();
+            int avatarIndex = MenuView.avatarComboBox.getSelectionModel().getSelectedIndex();
 
             // TODO: Zkusit navázat spojení
             boolean connected = tryConnect(ip, portStr);
@@ -99,6 +101,12 @@ public class ClientMain extends Application {
 
             return true;
         } catch (NumberFormatException e) {
+            MenuView.statusLabel.setText("Invalid port number.");
+            System.err.println("Invalid port number: " + portStr);
+            return false;
+        } catch (IOException e) {
+            MenuView.statusLabel.setText("Could not connect to server.");
+            System.err.println("Error connecting to the server: " + e.getMessage());
             return false;
         }
     }

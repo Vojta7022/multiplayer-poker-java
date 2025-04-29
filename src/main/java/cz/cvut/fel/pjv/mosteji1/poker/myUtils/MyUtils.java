@@ -1,5 +1,6 @@
 package cz.cvut.fel.pjv.mosteji1.poker.myUtils;
 
+import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Rank;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Suit;
 
@@ -22,6 +23,10 @@ public abstract class MyUtils {
 
     public static int getSpriteIndex(Rank rank, Suit suit) {
         return rank.ordinal() + suit.ordinal() * 4;
+    }
+
+    public static int getSpriteIndex(Card card) {
+        return getSpriteIndex(card.rank(), card.suit());
     }
 
     public static int getSpriteIndex(Sprites sprite) {

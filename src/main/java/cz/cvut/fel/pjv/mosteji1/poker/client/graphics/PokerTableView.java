@@ -15,13 +15,13 @@ import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 
 import java.io.ObjectInputStream;
-import java.util.Random;
 
 import static cz.cvut.fel.pjv.mosteji1.poker.myUtils.MyUtils.getSpriteIndex;
 
 public class PokerTableView extends BorderPane {
 
     private final HBox playersPane;
+    private final HBox communityCards;
 
     public PokerTableView(ClientEndpoint clientEndpoint) {
 
@@ -60,7 +60,7 @@ public class PokerTableView extends BorderPane {
         setBottom(bottomSection);
 
         // Middle: community cards
-        HBox communityCards = new HBox(20);
+        communityCards = new HBox(20);
         for (int i = 1; i <= 5; i++) {
             communityCards.getChildren().add(createCardPlaceholder());
         }
@@ -102,7 +102,10 @@ public class PokerTableView extends BorderPane {
     }
 
     public void updateView(TableRepresentation tableRepresentation) {
-        playersPane.getChildren().clear();      // AllIn, Folded
+        playersPane.getChildren().clear();
+
+
+        // UPDATE PLAYERS
 
         for (PlayerRepresentation playerRepresentation : tableRepresentation.getPlayers()) {
             VBox playerBox = new VBox(5);
@@ -113,20 +116,49 @@ public class PokerTableView extends BorderPane {
             avatarView.setFitHeight(60);
             avatarView.setClip(new Circle(30, 30, 30));
 
-            Label name = new Label(playerRepresentation.name());
+            Label name = new Label( tableRepresentation.getPlayers().indexOf(playerRepresentation)
+                == tableRepresentation.getWaitingForIndex() ?
+                "Your turn: " + playerRepresentation.name() :
+                ( tableRepresentation.getPlayers().indexOf(playerRepresentation) == tableRepresentation.getDealerIndex() ?
+                playerRepresentation.name() + " (Dealer)" :
+                playerRepresentation.name())
+
+            );
+
             name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: white;");
 
             Label money = new Label("$" + playerRepresentation.chips());
             money.setStyle("-fx-font-size: 12px; -fx-text-fill: #C8E6C9;");
+            if (playerRepresentation.folded()) {    // folded representation
+                name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #FF5252;");
+                money.setStyle("-fx-font-size: 12px; -fx-text-fill: #FF5252;");
+            }
+
+            Label allInLabel = new Label("All In!");
+            allInLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #f3cc31;");
 
             playerBox.getChildren().addAll(avatarView, name, money);
+            if (playerRepresentation.isAllIn()) playerBox.getChildren().add(allInLabel);
+
+
+
             playerBox.setAlignment(Pos.CENTER);
             playerBox.setPadding(new Insets(10));
             playerBox.getStyleClass().add("player-box");
 
             playersPane.getChildren().add(playerBox);
 
-            // Community Cards, Hole cards, PotSize, Threshold, Dealer, WaitingFor
+            communityCards.getChildren().clear();
+            for (int i = 0; i < tableRepresentation.getCommunityCards().size(); i++) {
+                ImageView card = new ImageView(ClientMain.sprites.get(getSpriteIndex(tableRepresentation.getCommunityCards().get(i))));
+                card.setFitWidth(100);
+                card.setFitHeight(150);
+                communityCards.getChildren().add(card);
+            }
+
+
+
+            // Hole cards, PotSize, Threshold, Dealer,
 
         }
     }

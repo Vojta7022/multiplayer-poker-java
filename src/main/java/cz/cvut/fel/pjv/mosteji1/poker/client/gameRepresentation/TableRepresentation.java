@@ -64,4 +64,16 @@ public class TableRepresentation implements Serializable {
     public ArrayList<PlayerRepresentation> getPlayers() {
         return players;
     }
+
+    public ArrayList<Card> getCommunityCards() {
+        return communityCards;
+    }
+
+    public int getWaitingForIndex() {
+        return waitingForIndex;
+    }
+
+    public int getDealerIndex() {
+        return dealerIndex;
+    }
 }

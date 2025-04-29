@@ -7,47 +7,37 @@ import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
 import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
 
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 public class Server {
 
     private static final int PORT = 12345;  // Port pro server
-    private List<ServerEndpoint> serverEndpoints;  // Seznam všech připojených klientů
-    private ServerSocket serverSocket;
+    private final List<ServerEndpoint> serverEndpoints = new ArrayList<>();  // Seznam všech připojených klientů
     private Table table;
 
     public Server() {
-        this.serverEndpoints = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            serverEndpoints.add(new ServerEndpoint(new Socket(), this));
-        }
+        startServer();
     }
 
     public void startServer() {
-        try {
-            // Otevření serverového socketu
-            serverSocket = new ServerSocket(PORT);
-            System.out.println("Server spuštěn na portu " + PORT);
+        try (ServerSocket serverSocket = new ServerSocket(PORT);)
+        {
+            String serverIp = getExternalIP();
+            System.out.println("Server started on IP: " + serverIp + ", port " + PORT);
 
-            Thread tableThread = new Thread(() -> {
-                table = new Table(this);
-            });
-
-            tableThread.start();
-
-            // Akceptování připojení klientů
+            // Accepting incoming client connections
+            System.out.println("Waiting for clients to connect...");
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Nový klient připojen: " + clientSocket.getInetAddress());
+                System.out.println("New client connected: " + clientSocket.getInetAddress());
 
-                // Vytvoření a spuštění nového klienta (Handler)
                 ServerEndpoint serverEndpoint = new ServerEndpoint(clientSocket, this);
                 addClientHandler(serverEndpoint);
 
-                // Spuštění nového vlákna pro komunikaci s klientem
+                // Start a new thread for the client
                 new Thread(String.valueOf(serverEndpoint)){
                     @Override
                     public void run() {
@@ -57,8 +47,10 @@ public class Server {
                 }.start();
             }
         } catch (IOException e) {
-            System.err.println("Error when launching server: " + e.getMessage());
+            System.err.println("Error starting server: " + e.getMessage());
         }
+
+        table = new Table(this);
     }
 
     public void addClientHandler(ServerEndpoint serverEndpoint) {
@@ -75,7 +67,8 @@ public class Server {
 
         ret.setPotSize(table.getPotSize());
         ret.setBetThreshold(table.getBetThreshold());
-        ret.setDealerIndex( ( table.getDealerIndex() - playersIndex ) % table.getPlayers().size() );    // send index relative to receiver
+        /*ret.setDealerIndex( ( table.getDealerIndex() - playersIndex ) % table.getPlayers().size() );*/
+        ret.setDealerIndex(table.getDealerIndex());
         ret.setMyHand(receiver.getHand().toArray(new Card[2]));
         ret.setCommunityCards(table.getCommunityCards());
         ret.setWaitingForIndex(table.getWaitingForIndex());
@@ -89,13 +82,13 @@ public class Server {
             try {
                 player.getEndpoint().sendTableRepresentation(representation);
             } catch (IOException e) {
-                System.err.println("Chyba při odesílání aktualizace hráči " + player.getName() + ": " + e.getMessage());
+                System.err.println("Error sending update to player " + player.getName() + ": " + e.getMessage());
             }
         }
     }
 
     public void sendMessageToClient(ServerEndpoint serverEndpoint, String message) {
-        // Poslání zprávy konkrétnímu klientovi
+        // Sending a message to a specific client
         serverEndpoint.sendMessage(message);
     }
 
@@ -124,9 +117,26 @@ public class Server {
 //        broadcastMessage("Hra skončila! Vítězem je: " + winner);
     }
 
-
-
     public List<ServerEndpoint> getServerEndpoints() {
         return serverEndpoints;
+    }
+
+    private String getExternalIP() {
+        try {
+            Enumeration<NetworkInterface> networks = NetworkInterface.getNetworkInterfaces();
+            while (networks.hasMoreElements()) {
+                NetworkInterface network = networks.nextElement();
+                Enumeration<InetAddress> addresses = network.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+                    if (!address.isLoopbackAddress() && address instanceof java.net.Inet4Address) {
+                        return address.getHostAddress();
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        return "Unknown IP";
     }
 }

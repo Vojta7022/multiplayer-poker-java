@@ -13,12 +13,13 @@ public class ClientEndpoint {
     private BufferedReader input;
     private PrintWriter output;
 
-    public ClientEndpoint(String serverAddress, int serverPort) {
+    public ClientEndpoint(String serverAddress, int serverPort) throws IOException {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
+        start();
     }
 
-    public void start() {
+    public void start() throws IOException {
         try {
             // Connect to the server
             socket = new Socket(serverAddress, serverPort);
