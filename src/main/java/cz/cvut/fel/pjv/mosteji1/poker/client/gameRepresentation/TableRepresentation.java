@@ -1,0 +1,67 @@
+package cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation;
+
+import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
+import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Deck;
+import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+
+public class TableRepresentation implements Serializable {
+    private final ArrayList<PlayerRepresentation> players;
+    private ArrayList<Card> communityCards;
+    private int potSize;
+    private int betThreshold;
+    private int dealerIndex;
+    private int waitingForIndex;
+
+    private Card[] myHand;
+
+    public TableRepresentation() {
+        this.players = new ArrayList<>();
+        this.communityCards = new ArrayList<>();
+        this.potSize = 0;
+        this.betThreshold = 0;
+        this.dealerIndex = 0;
+        this.waitingForIndex = 0;
+    }
+
+    public void addPlayer(String name, int avatarIndex, int startingChips, int bet, boolean folded, boolean isAllIn) {
+        PlayerRepresentation player = new PlayerRepresentation(name, avatarIndex, startingChips, bet, folded, isAllIn);
+        players.add(player);
+    }
+
+    public void setPotSize(int potSize) {
+        this.potSize = potSize;
+    }
+
+    public void setBetThreshold(int betThreshold) {
+        this.betThreshold = betThreshold;
+    }
+
+    public void setDealerIndex(int dealerIndex) {
+        this.dealerIndex = dealerIndex;
+    }
+
+    public void setMyHand(Card[] myHand) {
+        this.myHand = myHand;
+        assert myHand.length == 2;
+    }
+
+    public void dropHand() {
+        myHand = null;
+    }
+
+
+    public void setCommunityCards(ArrayList<Card> communityCards) {
+        this.communityCards = communityCards;
+    }
+
+    public void setWaitingForIndex(int waitingForIndex) {
+        this.waitingForIndex = waitingForIndex;
+    }
+
+    public ArrayList<PlayerRepresentation> getPlayers() {
+        return players;
+    }
+}

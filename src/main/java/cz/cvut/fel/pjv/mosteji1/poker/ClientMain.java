@@ -2,12 +2,14 @@ package cz.cvut.fel.pjv.mosteji1.poker;
 
 import cz.cvut.fel.pjv.mosteji1.poker.resources.graphics.PokerTableView;
 import javafx.application.Application;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
+
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 
 public class ClientMain extends Application {
@@ -15,63 +17,61 @@ public class ClientMain extends Application {
     private Stage primaryStage;
 
     @Override
-    public void start(Stage stage) {
+    public void start(Stage stage) throws FileNotFoundException {
         this.primaryStage = stage;
+        graphicsInitialize();
         showMenuScene();
     }
 
     private void showMenuScene() {
-        VBox menuBox = new VBox(15);
-        menuBox.setAlignment(Pos.CENTER);
-        menuBox.setPadding(new Insets(50));
 
-        TextField ipField = new TextField();
-        ipField.setPromptText("IP adresa");
+        MenuView menuView = new MenuView();
 
-        TextField portField = new TextField();
-        portField.setPromptText("Port");
-
-        Button connectButton = new Button("Připojit se");
-
-        Label statusLabel = new Label();
-
-        connectButton.setOnAction(e -> {
-            String ip = ipField.getText();
-            String portStr = portField.getText();
+        menuView.connectButton.setOnAction(e -> {
+            String ip = MenuView.ipField.getText();
+            String portStr = MenuView.portField.getText();
+            String playerName = MenuView.playerNameField.getText();
 
             // TODO: Zkusit navázat spojení
             boolean connected = tryConnect(ip, portStr);
 
             if (connected) {
-                showPokerTableScene();
+                gameState = GameState.PLAYING;
+                showTableScene();
             } else {
-                statusLabel.setText("Nepodařilo se připojit.");
+                MenuView.statusLabel.setText("Could not connect.");
             }
         });
 
-        menuBox.getChildren().addAll(ipField, portField, connectButton, statusLabel);
-        Scene menuScene = new Scene(menuBox, 600, 400);
-        primaryStage.setTitle("Poker Client - Připojení");
+        Scene menuScene = new Scene(menuView);
+        menuScene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style.css")).toExternalForm());
+        primaryStage.setTitle("Poker Client - Connection");
         primaryStage.setScene(menuScene);
         primaryStage.show();
-    }
-
-    private boolean tryConnect(String ip, String portStr) {
-        // TODO: Reálná logika připojení přes socket
-        try {
-            int port = Integer.parseInt(portStr);
-            System.out.println("Připojuji se na IP: " + ip + ", port: " + port);
-            // Simulace úspěchu
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
+        primaryStage.setResizable(false);
     }
 
     private void showPokerTableScene() {
         PokerTableView tableView = new PokerTableView();
         Scene tableScene = new Scene(tableView);
+        tableScene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style.css")).toExternalForm());
         primaryStage.setScene(tableScene);
+        primaryStage.setTitle("Poker Client - Game");
+        primaryStage.setMaximized(true);
+    }
+
+    private boolean tryConnect(String ip, String portStr) {
+        // TODO: Reálná logika připojení přes socket
+        try {
+            myEndpoint = new ClientEndpoint(ip, Integer.parseInt(portStr));
+            System.out.println("Connecting to IP: " + ip + ", port: " + portStr);
+
+
+
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     public static void main(String[] args) {
