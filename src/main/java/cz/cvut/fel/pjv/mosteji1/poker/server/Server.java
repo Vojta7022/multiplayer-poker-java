@@ -1,6 +1,9 @@
 package cz.cvut.fel.pjv.mosteji1.poker.server;
 
-import cz.cvut.fel.pjv.mosteji1.poker.common.game.OldTable;
+import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.TableRepresentation;
+import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
+import cz.cvut.fel.pjv.mosteji1.poker.common.game.Table;
+import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
 import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
 
 import java.io.IOException;
@@ -14,7 +17,7 @@ public class Server {
     private static final int PORT = 12345;  // Port pro server
     private List<ServerEndpoint> serverEndpoints;  // Seznam všech připojených klientů
     private ServerSocket serverSocket;
-    private OldTable oldTable;
+    private Table table;
 
     public Server() {
         this.serverEndpoints = new ArrayList<>();
@@ -29,6 +32,12 @@ public class Server {
             serverSocket = new ServerSocket(PORT);
             System.out.println("Server spuštěn na portu " + PORT);
 
+            Thread tableThread = new Thread(() -> {
+                table = new Table(this);
+            });
+
+            tableThread.start();
+
             // Akceptování připojení klientů
             while (true) {
                 Socket clientSocket = serverSocket.accept();
@@ -39,23 +48,48 @@ public class Server {
                 addClientHandler(serverEndpoint);
 
                 // Spuštění nového vlákna pro komunikaci s klientem
-                new Thread(String.valueOf(serverEndpoint)).start();
+                new Thread(String.valueOf(serverEndpoint)){
+                    @Override
+                    public void run() {
+                        serverEndpoint.run();
+                    }
+
+                }.start();
             }
         } catch (IOException e) {
-            System.err.println("Chyba při spuštění serveru: " + e.getMessage());
+            System.err.println("Error when launching server: " + e.getMessage());
         }
     }
 
     public void addClientHandler(ServerEndpoint serverEndpoint) {
         serverEndpoints.add(serverEndpoint);
-        System.out.println("Přidán nový klient.");
+        System.out.println("New client added.");
     }
 
-    public void broadcastMessage(String message) {
-        // Poslání zprávy všem připojeným klientům
-        for (ServerEndpoint serverEndpoint : serverEndpoints) {
-            if (serverEndpoint.isActive()) {
-                serverEndpoint.sendMessage(message);
+    public TableRepresentation getTableRepresentation(Player receiver, int playersIndex) {
+        TableRepresentation ret = new TableRepresentation();
+
+        for (Player player : table.getPlayers()) {
+            ret.addPlayer(player.getName(), player.getAvatarIndex(), player.getChips(), player.getBet(), player.hasFolded(), player.isAllIn());
+        }
+
+        ret.setPotSize(table.getPotSize());
+        ret.setBetThreshold(table.getBetThreshold());
+        ret.setDealerIndex( ( table.getDealerIndex() - playersIndex ) % table.getPlayers().size() );    // send index relative to receiver
+        ret.setMyHand(receiver.getHand().toArray(new Card[2]));
+        ret.setCommunityCards(table.getCommunityCards());
+        ret.setWaitingForIndex(table.getWaitingForIndex());
+
+        return ret;
+    }
+
+    public void sendUpdatesToAllPlayers() {
+        for (Player player : table.getPlayers()) {
+            TableRepresentation representation = getTableRepresentation(player, table.getPlayers().indexOf(player));
+            try {
+                player.getEndpoint().sendTableRepresentation(representation);
+            } catch (IOException e) {
+                System.err.println("Chyba při odesílání aktualizace hráči " + player.getName() + ": " + e.getMessage());
             }
         }
     }
@@ -89,6 +123,8 @@ public class Server {
 //        String winner = table.determineWinner();
 //        broadcastMessage("Hra skončila! Vítězem je: " + winner);
     }
+
+
 
     public List<ServerEndpoint> getServerEndpoints() {
         return serverEndpoints;

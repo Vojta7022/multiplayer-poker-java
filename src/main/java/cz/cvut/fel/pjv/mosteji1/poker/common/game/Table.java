@@ -20,6 +20,7 @@ public class Table {
     private int potSize;
     private int betThreshold;
     private int dealerIndex;
+    private int waitingForIndex = 2;
 
     public Table(Server parent) {
         // Logic to start the game
@@ -123,6 +124,7 @@ public class Table {
         boolean allPlayersFolded = false;
         while (!allPlayersFolded) {
             for (Player player : players) {
+                waitingForIndex = players.indexOf(player);
                 if (!player.hasFolded() && !player.isAllIn()) {
                     int bet = player.getBet();
                     if (bet < betThreshold) {
@@ -266,5 +268,29 @@ public class Table {
             System.out.println(player.getName() + " does not have enough chips!");
             return false;
         }
+    }
+
+    public ArrayList<Player> getPlayers() {
+        return players;
+    }
+
+    public int getPotSize() {
+        return potSize;
+    }
+
+    public int getBetThreshold() {
+        return betThreshold;
+    }
+
+    public int getDealerIndex() {
+        return dealerIndex;
+    }
+
+    public ArrayList<Card> getCommunityCards() {
+        return communityCards;
+    }
+
+    public int getWaitingForIndex() {
+        return waitingForIndex;
     }
 }

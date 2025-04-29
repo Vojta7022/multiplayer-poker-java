@@ -1,5 +1,6 @@
 package cz.cvut.fel.pjv.mosteji1.poker.server.network;
 
+import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.TableRepresentation;
 import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
 
 import java.io.*;
@@ -10,11 +11,11 @@ public class ServerEndpoint {
     private BufferedReader input;
     private PrintWriter output;
     private boolean isActive;
-    private Server server;
+    private Server parentServer;
 
     public ServerEndpoint(Socket socket, Server server) {
         this.clientSocket = socket;
-        this.server = server;
+        this.parentServer = server;
         this.isActive = true;
         try {
             this.input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -79,6 +80,13 @@ public class ServerEndpoint {
     public void sendMessage(String message) {
         // Posílání zpráv zpět klientovi
         output.println(message);
+    }
+
+    public void sendTableRepresentation(TableRepresentation tableRepresentation) throws IOException {
+        ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+        out.writeObject(tableRepresentation);
+        out.flush();
+        out.close();
     }
 
     public String getName() {

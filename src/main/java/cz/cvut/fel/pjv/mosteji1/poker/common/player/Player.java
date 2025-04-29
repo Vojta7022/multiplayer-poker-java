@@ -8,6 +8,8 @@ import java.util.List;
 
 public class Player {
     private final String name;
+    private int avatarIndex;
+
     private ServerEndpoint endpoint;
     private final List<Card> hand;
     private int chips;
@@ -86,5 +88,13 @@ public class Player {
 
     public void setFolded(boolean b) {
         this.folded = b;
+    }
+
+    public int getAvatarIndex() {
+        return avatarIndex;
+    }
+
+    public void setAvatarIndex(int avatarIndex) {
+        this.avatarIndex = avatarIndex;
     }
 }

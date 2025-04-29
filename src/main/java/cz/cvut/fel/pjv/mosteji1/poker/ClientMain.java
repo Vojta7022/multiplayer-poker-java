@@ -1,6 +1,10 @@
 package cz.cvut.fel.pjv.mosteji1.poker;
 
-import cz.cvut.fel.pjv.mosteji1.poker.resources.graphics.PokerTableView;
+import cz.cvut.fel.pjv.mosteji1.poker.client.GameState;
+import cz.cvut.fel.pjv.mosteji1.poker.client.graphics.MenuView;
+import cz.cvut.fel.pjv.mosteji1.poker.client.network.ClientEndpoint;
+import cz.cvut.fel.pjv.mosteji1.poker.common.game.GameParameters;
+import cz.cvut.fel.pjv.mosteji1.poker.client.graphics.PokerTableView;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
@@ -14,13 +18,38 @@ import java.util.Objects;
 
 public class ClientMain extends Application {
 
+    private GameState gameState = GameState.MENU;
     private Stage primaryStage;
+    public static final List<Image> sprites = new ArrayList<>();
+    public static final List<Image> avatars = new ArrayList<>();
+    private ClientEndpoint myEndpoint;
 
     @Override
     public void start(Stage stage) throws FileNotFoundException {
         this.primaryStage = stage;
         graphicsInitialize();
         showMenuScene();
+    }
+
+    private void graphicsInitialize() throws FileNotFoundException {
+        // Cards
+        for (int i = 0; i < GameParameters.CARD_COUNT; i++) {
+            Image image = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/card_" + i + ".png")));
+            sprites.add(image);
+        }
+
+        // Other images
+        sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/card_back.png"))));   // 52
+        sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/card_placeholder.png")))); // 53
+        sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/button_absent.png"))));  // 54
+        sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/button_present.png")))); // 55
+        sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/menu_background.png")))); // 56
+
+        // Avatars
+        for (int i = 0; i < GameParameters.AVATAR_COUNT; i++) {
+            Image image = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/avatars/" + (i + 1) + ".png")));
+            avatars.add(image);
+        }
     }
 
     private void showMenuScene() {
@@ -51,8 +80,8 @@ public class ClientMain extends Application {
         primaryStage.setResizable(false);
     }
 
-    private void showPokerTableScene() {
-        PokerTableView tableView = new PokerTableView();
+    private void showTableScene() {
+        PokerTableView tableView = new PokerTableView(this.myEndpoint);
         Scene tableScene = new Scene(tableView);
         tableScene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style.css")).toExternalForm());
         primaryStage.setScene(tableScene);

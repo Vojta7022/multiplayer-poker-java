@@ -1,7 +1,5 @@
 package cz.cvut.fel.pjv.mosteji1.poker.client.network;
 
-import cz.cvut.fel.pjv.mosteji1.poker.client.Client;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -79,5 +77,13 @@ public class ClientEndpoint {
         } catch (IOException e) {
             System.err.println("Error closing connection: " + e.getMessage());
         }
+    }
+
+    public boolean isClosed() {
+        return socket == null;
+    }
+
+    public Socket getSocket() {
+        return socket;
     }
 }
