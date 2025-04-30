@@ -4,6 +4,9 @@ import cz.cvut.fel.pjv.mosteji1.poker.ClientMain;
 import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.PlayerRepresentation;
 import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.TableRepresentation;
 import cz.cvut.fel.pjv.mosteji1.poker.client.network.ClientEndpoint;
+import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
+import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Rank;
+import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Suit;
 import cz.cvut.fel.pjv.mosteji1.poker.myUtils.MyUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -14,7 +17,9 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 
+import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.ArrayList;
 
 import static cz.cvut.fel.pjv.mosteji1.poker.myUtils.MyUtils.getSpriteIndex;
 
@@ -22,6 +27,8 @@ public class PokerTableView extends BorderPane {
 
     private final HBox playersPane;
     private final HBox communityCards;
+    private final HBox playerCards;
+    private final Label potSizeBox;
 
     public PokerTableView(ClientEndpoint clientEndpoint) {
 
@@ -48,14 +55,17 @@ public class PokerTableView extends BorderPane {
         HBox actionButtons = new HBox(20, foldButton, checkButton, raiseButton);
         actionButtons.setAlignment(Pos.CENTER);
 
-        HBox playerCards = new HBox(10,
+        playerCards = new HBox(10,
                 createCardPlaceholder(),
                 createCardPlaceholder()
         );
         playerCards.setAlignment(Pos.CENTER);
         playerCards.setPadding(new Insets(20,20,20,20));
 
-        VBox bottomSection = new VBox(10, actionButtons, playerCards);
+        potSizeBox = new Label("Pot: $0");
+        potSizeBox.setStyle("-fx-font-size: 20px; -fx-text-fill: #C8E6C9;");
+
+        VBox bottomSection = new VBox(10, actionButtons, playerCards, potSizeBox);
         bottomSection.setAlignment(Pos.CENTER);
         setBottom(bottomSection);
 
@@ -80,13 +90,46 @@ public class PokerTableView extends BorderPane {
                 try {
                     ObjectInputStream in = new ObjectInputStream(clientEndpoint.getSocket().getInputStream());
                     TableRepresentation tr = (TableRepresentation) in.readObject();
-
                     updateView(tr);
-                } catch (Exception e) {
+                } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
             }
         });
+
+        TableRepresentation tr = new TableRepresentation();
+        tr.setGameStarted(false);
+        tr.setDealerIndex(0);
+        tr.setWaitingForIndex(0);
+        tr.setPotSize(0);
+        tr.setBetThreshold(0);
+
+        tr.addPlayer("Láďa", 0, 1000, 0, false, false);
+        tr.addPlayer("Vojta", 1, 1000, 0, false, false);
+        tr.addPlayer("Jirka", 2, 1000, 0, false, false);
+
+        ArrayList<Card> communityCards = new ArrayList<Card>();
+        communityCards.add(new Card(Rank.ACE, Suit.DIAMONDS));
+        communityCards.add(new Card(Rank.KING, Suit.DIAMONDS));
+        communityCards.add(new Card(Rank.QUEEN, Suit.DIAMONDS));
+        communityCards.add(new Card(Rank.JACK, Suit.DIAMONDS));
+        communityCards.add(new Card(Rank.TEN, Suit.DIAMONDS));
+
+        tr.setMyHand(new ArrayList<>());
+        tr.getMyHand().add(new Card(Rank.ACE, Suit.SPADES));
+        tr.getMyHand().add(new Card(Rank.KING, Suit.SPADES));
+
+        for (Suit suit : Suit.values() ) {
+            for (Rank rank : Rank.values()) {
+                Card card = new Card(rank, suit);
+                System.out.println("Card: " + card + ", Sprite index: " + getSpriteIndex(card));
+            }
+        }
+
+        tr.setCommunityCards(communityCards);
+
+        updateView(tr);
+
         acceptUpdates.start();
 
     }
@@ -121,7 +164,7 @@ public class PokerTableView extends BorderPane {
                 "Your turn: " + playerRepresentation.name() :
                 ( tableRepresentation.getPlayers().indexOf(playerRepresentation) == tableRepresentation.getDealerIndex() ?
                 playerRepresentation.name() + " (Dealer)" :
-                playerRepresentation.name())
+                playerRepresentation.name() )
 
             );
 
@@ -153,12 +196,25 @@ public class PokerTableView extends BorderPane {
                 ImageView card = new ImageView(ClientMain.sprites.get(getSpriteIndex(tableRepresentation.getCommunityCards().get(i))));
                 card.setFitWidth(100);
                 card.setFitHeight(150);
+
                 communityCards.getChildren().add(card);
             }
 
+            playerCards.getChildren().clear();
+
+            for (Card card : tableRepresentation.getMyHand()) {
+                ImageView cardView = new ImageView(ClientMain.sprites.get(getSpriteIndex(card)));
+                cardView.setFitWidth(100);
+                cardView.setFitHeight(150);
+                playerCards.getChildren().add(cardView);
+            }
+
+            potSizeBox.setText("Pot: $" + tableRepresentation.getPotSize() +
+                    " | Bet Threshold: $" + tableRepresentation.getBetThreshold());
 
 
-            // Hole cards, PotSize, Threshold, Dealer,
+
+            // Threshold
 
         }
     }

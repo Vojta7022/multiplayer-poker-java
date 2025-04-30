@@ -13,6 +13,9 @@ public class ServerEndpoint {
     private boolean isActive;
     private Server parentServer;
 
+    private String name;
+    private int avatarIndex;
+
     public ServerEndpoint(Socket socket, Server server) {
         this.clientSocket = socket;
         this.parentServer = server;
@@ -20,6 +23,10 @@ public class ServerEndpoint {
         try {
             this.input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             this.output = new PrintWriter(clientSocket.getOutputStream(), true);
+           // name and avatarIndex are read from the client
+            this.name = input.readLine();
+            this.avatarIndex = Integer.parseInt(input.readLine());
+            System.out.println("Client connected: " + name + ", Avatar index: " + avatarIndex);
         } catch (IOException e) {
             System.err.println("Error in input and output initialization for client: " + e.getMessage());
             this.isActive = false;
@@ -90,10 +97,14 @@ public class ServerEndpoint {
     }
 
     public String getName() {
-        return clientSocket.getInetAddress().getHostName();
+        return name;
     }
 
     public boolean isActive() {
         return isActive;
+    }
+
+    public int getAvatarIndex() {
+        return avatarIndex;
     }
 }

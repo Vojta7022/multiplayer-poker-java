@@ -2,6 +2,7 @@ package cz.cvut.fel.pjv.mosteji1.poker.server;
 
 import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.TableRepresentation;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
+import cz.cvut.fel.pjv.mosteji1.poker.common.game.GameParameters;
 import cz.cvut.fel.pjv.mosteji1.poker.common.game.Table;
 import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
 import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
@@ -11,12 +12,16 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Scanner;
+
+import static java.lang.Thread.interrupted;
 
 public class Server {
 
-    private static final int PORT = 12345;  // Port pro server
-    private final List<ServerEndpoint> serverEndpoints = new ArrayList<>();  // Seznam všech připojených klientů
+    private static final int PORT = 12345;
+    private final List<ServerEndpoint> serverEndpoints = new ArrayList<>();
     private Table table;
+    private final Scanner scanner = new Scanner(System.in);
 
     public Server() {
         startServer();
@@ -30,27 +35,69 @@ public class Server {
 
             // Accepting incoming client connections
             System.out.println("Waiting for clients to connect...");
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("New client connected: " + clientSocket.getInetAddress());
 
-                ServerEndpoint serverEndpoint = new ServerEndpoint(clientSocket, this);
-                addClientHandler(serverEndpoint);
-
-                // Start a new thread for the client
-                new Thread(String.valueOf(serverEndpoint)){
-                    @Override
-                    public void run() {
-                        serverEndpoint.run();
+            Thread acceptClients = new Thread(() -> {
+                while (!interrupted()) {
+                    Socket clientSocket = null;
+                    try {
+                        clientSocket = serverSocket.accept();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
+                    System.out.println("New client connected: " + clientSocket.getInetAddress());
 
-                }.start();
+                    ServerEndpoint serverEndpoint = new ServerEndpoint(clientSocket, this);
+                    addClientHandler(serverEndpoint);
+
+                    // Start a new thread for the client
+                    new Thread(String.valueOf(serverEndpoint)){
+                        @Override
+                        public void run() {
+                            serverEndpoint.run();
+                        }
+
+                    }.start();
+                }
+            });
+
+            acceptClients.start();
+
+            while (true) {
+                String command = scanner.nextLine();
+                if (command.equalsIgnoreCase("start")) {
+                    acceptClients.interrupt();
+                    startGame();
+                } else if (command.equalsIgnoreCase("exit")) {
+                    System.out.println("Exiting server...");
+                    System.exit(0);
+                } else {
+                    System.out.println("Unknown command. Use 'start' to start the game or 'exit' to exit.");
+                }
             }
+
         } catch (IOException e) {
             System.err.println("Error starting server: " + e.getMessage());
         }
+    }
 
-        table = new Table(this);
+    private void startGame() {
+        if (serverEndpoints.size() >= GameParameters.MIN_PLAYERS && serverEndpoints.size() <= GameParameters.MAX_PLAYERS) {
+            table = new Table(this);
+            table.addPlayers(serverEndpoints);
+
+            System.out.println("Game started with " + serverEndpoints.size() + " players.");
+        }
+        else {
+            System.out.println("Invalid number of players. Game cannot start.");
+            return;
+        }
+        // Send initial table representation to all players
+        sendUpdatesToAllPlayers();
+
+        // Start the game loop
+        while (!table.isGameWon()) {
+            table.startRound();
+        }
     }
 
     public void addClientHandler(ServerEndpoint serverEndpoint) {
@@ -69,7 +116,7 @@ public class Server {
         ret.setBetThreshold(table.getBetThreshold());
         /*ret.setDealerIndex( ( table.getDealerIndex() - playersIndex ) % table.getPlayers().size() );*/
         ret.setDealerIndex(table.getDealerIndex());
-        ret.setMyHand(receiver.getHand().toArray(new Card[2]));
+        ret.setMyHand(receiver.getHand());
         ret.setCommunityCards(table.getCommunityCards());
         ret.setWaitingForIndex(table.getWaitingForIndex());
 
@@ -92,31 +139,6 @@ public class Server {
         serverEndpoint.sendMessage(message);
     }
 
-    public void startGame() {
-//        // Inicializace herního stolu
-//        table = new Table(serverEndpoints);
-//        table.initializeGame();
-//
-//        // Rozdání karet hráčům
-//        table.dealCardsToPlayers();
-//
-//        // Oznámení hráčům, že hra začíná
-//        broadcastMessage("Hra začíná! Karty byly rozdány.");
-//
-//        // Zahájení prvního kola sázek
-//        table.startBettingRound();
-//
-//        // Další logika hry (např. další kola sázek, odhalení karet, určení vítěze)
-//        while (!table.isGameOver()) {
-//            table.startBettingRound();
-//            table.revealNextCommunityCard();
-//        }
-//
-//        // Oznámení vítěze
-//        String winner = table.determineWinner();
-//        broadcastMessage("Hra skončila! Vítězem je: " + winner);
-    }
-
     public List<ServerEndpoint> getServerEndpoints() {
         return serverEndpoints;
     }
@@ -130,7 +152,10 @@ public class Server {
                 while (addresses.hasMoreElements()) {
                     InetAddress address = addresses.nextElement();
                     if (!address.isLoopbackAddress() && address instanceof java.net.Inet4Address) {
-                        return address.getHostAddress();
+                        String ip = address.getHostAddress();
+                        if (ip.startsWith("192.168") || ip.startsWith("147.32")) {
+                            return ip;
+                        }
                     }
                 }
             }

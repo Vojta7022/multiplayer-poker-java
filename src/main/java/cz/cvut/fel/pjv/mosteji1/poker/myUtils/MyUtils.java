@@ -22,7 +22,7 @@ public abstract class MyUtils {
     }
 
     public static int getSpriteIndex(Rank rank, Suit suit) {
-        return rank.ordinal() + suit.ordinal() * 4;
+        return rank.ordinal() + suit.ordinal() * Rank.values().length;
     }
 
     public static int getSpriteIndex(Card card) {
@@ -35,7 +35,6 @@ public abstract class MyUtils {
             case BUTTON_ABSENT -> 54;
             case BUTTON_PRESENT -> 55;
             case MENU_BACKGROUND -> 56;
-
 
             default -> 53; // CARD_PLACEHOLDER
         };

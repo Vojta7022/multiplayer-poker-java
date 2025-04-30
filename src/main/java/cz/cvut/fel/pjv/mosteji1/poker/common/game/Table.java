@@ -30,12 +30,8 @@ public class Table {
 
         for (ServerEndpoint endpoint : parent.getServerEndpoints()) {
             Random random = new Random();
-            Player player = new Player(GameParameters.names[random.nextInt(GameParameters.names.length)], 1000);
+            Player player = new Player(GameParameters.names[random.nextInt(GameParameters.names.length)], 1, 1000);
             players.add(player);
-        }
-
-        while(true) {
-            startRound();
         }
     }
 
@@ -292,5 +288,17 @@ public class Table {
 
     public int getWaitingForIndex() {
         return waitingForIndex;
+    }
+
+    public void addPlayers(List<ServerEndpoint> serverEndpoints) {
+        for (ServerEndpoint serverEndpoint : serverEndpoints) {
+            Player player = new Player(serverEndpoint.getName(),serverEndpoint.getAvatarIndex(), GameParameters.STARTING_CHIPS);
+            player.setEndpoint(serverEndpoint);
+            players.add(player);
+        }
+    }
+
+    public boolean isGameWon() {
+        return players.size() == 1;
     }
 }

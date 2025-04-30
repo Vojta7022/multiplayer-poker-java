@@ -1,5 +1,7 @@
 package cz.cvut.fel.pjv.mosteji1.poker.client.network;
 
+import cz.cvut.fel.pjv.mosteji1.poker.ClientMain;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,11 +14,14 @@ public class ClientEndpoint {
     private Socket socket;
     private BufferedReader input;
     private PrintWriter output;
+    private final String name;
+    private final int avatarIndex;
 
-    public ClientEndpoint(String serverAddress, int serverPort) throws IOException {
+    public ClientEndpoint(String serverAddress, int serverPort, String name, int avatarIndex) throws IOException {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
-        start();
+        this.name = name;
+        this.avatarIndex = avatarIndex;
     }
 
     public void start() throws IOException {
@@ -31,9 +36,10 @@ public class ClientEndpoint {
 
             // Start a thread to listen for messages from the server
             new Thread(this::listenForMessages).start();
-
-            // Example: Sending a message to the server
-            sendMessage("JOIN");
+            // Send initial data to the server
+            output.println(name);
+            output.println(avatarIndex);
+            System.out.println("Sent name and avatar index to the server: " + name + ", " + avatarIndex);
 
         } catch (IOException e) {
             System.err.println("Error connecting to the server: " + e.getMessage());
@@ -86,5 +92,12 @@ public class ClientEndpoint {
 
     public Socket getSocket() {
         return socket;
+    }
+
+    public String getName() {
+        return name;
+    }
+    public int getAvatarIndex() {
+        return avatarIndex;
     }
 }

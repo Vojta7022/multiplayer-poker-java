@@ -11,14 +11,15 @@ public class Player {
     private int avatarIndex;
 
     private ServerEndpoint endpoint;
-    private final List<Card> hand;
+    private final ArrayList<Card> hand;
     private int chips;
     private boolean folded;
     private int bet;
     private boolean isAllIn;
 
-    public Player(String name, int startingChips) {
+    public Player(String name, int avatarIndex, int startingChips) {
         this.name = name;
+        this.avatarIndex = avatarIndex;
         this.hand = new ArrayList<>();
         this.chips = startingChips;
         this.folded = false;
@@ -45,7 +46,7 @@ public class Player {
         return folded;
     }
 
-    public List<Card> getHand() {
+    public ArrayList<Card> getHand() {
         return hand;
     }
 
@@ -96,5 +97,9 @@ public class Player {
 
     public void setAvatarIndex(int avatarIndex) {
         this.avatarIndex = avatarIndex;
+    }
+
+    public void setEndpoint(ServerEndpoint serverEndpoint) {
+        this.endpoint = serverEndpoint;
     }
 }

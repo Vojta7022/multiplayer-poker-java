@@ -14,8 +14,17 @@ public class TableRepresentation implements Serializable {
     private int betThreshold;
     private int dealerIndex;
     private int waitingForIndex;
+    private ArrayList<Card> myHand;
 
-    private Card[] myHand;
+    private boolean gameStarted;
+
+    public boolean isGameStarted() {
+        return gameStarted;
+    }
+
+    public void setGameStarted(boolean gameStarted) {
+        this.gameStarted = gameStarted;
+    }
 
     public TableRepresentation() {
         this.players = new ArrayList<>();
@@ -24,6 +33,7 @@ public class TableRepresentation implements Serializable {
         this.betThreshold = 0;
         this.dealerIndex = 0;
         this.waitingForIndex = 0;
+        this.gameStarted = false;
     }
 
     public void addPlayer(String name, int avatarIndex, int startingChips, int bet, boolean folded, boolean isAllIn) {
@@ -43,9 +53,9 @@ public class TableRepresentation implements Serializable {
         this.dealerIndex = dealerIndex;
     }
 
-    public void setMyHand(Card[] myHand) {
+    public void setMyHand(ArrayList<Card> myHand) {
         this.myHand = myHand;
-        assert myHand.length == 2;
+        assert myHand.size() == 2;
     }
 
     public void dropHand() {
@@ -75,5 +85,17 @@ public class TableRepresentation implements Serializable {
 
     public int getDealerIndex() {
         return dealerIndex;
+    }
+
+    public ArrayList<Card> getMyHand() {
+        return myHand;
+    }
+
+    public String getPotSize() {
+        return String.valueOf(potSize);
+    }
+
+    public String getBetThreshold() {
+        return String.valueOf(betThreshold);
     }
 }

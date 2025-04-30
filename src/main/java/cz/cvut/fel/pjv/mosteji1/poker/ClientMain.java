@@ -1,3 +1,4 @@
+
 package cz.cvut.fel.pjv.mosteji1.poker;
 
 import cz.cvut.fel.pjv.mosteji1.poker.client.GameState;
@@ -24,6 +25,8 @@ public class ClientMain extends Application {
     public static final List<Image> sprites = new ArrayList<>();
     public static final List<Image> avatars = new ArrayList<>();
     private ClientEndpoint myEndpoint;
+    private int avatarIndex;
+    private String name;
 
     @Override
     public void start(Stage stage) throws FileNotFoundException {
@@ -60,8 +63,8 @@ public class ClientMain extends Application {
         menuView.connectButton.setOnAction(e -> {
             String ip = MenuView.ipField.getText();
             String portStr = MenuView.portField.getText();
-            String playerName = MenuView.playerNameField.getText();
-            int avatarIndex = MenuView.avatarComboBox.getSelectionModel().getSelectedIndex();
+            name = MenuView.playerNameField.getText();
+            avatarIndex = MenuView.avatarComboBox.getSelectionModel().getSelectedIndex();
 
             // TODO: Zkusit navázat spojení
             boolean connected = tryConnect(ip, portStr);
@@ -94,10 +97,9 @@ public class ClientMain extends Application {
     private boolean tryConnect(String ip, String portStr) {
         // TODO: Reálná logika připojení přes socket
         try {
-            myEndpoint = new ClientEndpoint(ip, Integer.parseInt(portStr));
+            myEndpoint = new ClientEndpoint(ip, Integer.parseInt(portStr), name, avatarIndex);
+            myEndpoint.start();
             System.out.println("Connecting to IP: " + ip + ", port: " + portStr);
-
-
 
             return true;
         } catch (NumberFormatException e) {
