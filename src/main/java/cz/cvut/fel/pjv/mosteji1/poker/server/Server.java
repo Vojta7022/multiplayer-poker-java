@@ -148,14 +148,15 @@ public class Server {
             Enumeration<NetworkInterface> networks = NetworkInterface.getNetworkInterfaces();
             while (networks.hasMoreElements()) {
                 NetworkInterface network = networks.nextElement();
+                if (network.isLoopback() || !network.isUp()) {
+                    continue; // skip loopback or inactive interfaces
+                }
+
                 Enumeration<InetAddress> addresses = network.getInetAddresses();
                 while (addresses.hasMoreElements()) {
                     InetAddress address = addresses.nextElement();
-                    if (!address.isLoopbackAddress() && address instanceof java.net.Inet4Address) {
-                        String ip = address.getHostAddress();
-                        if (ip.startsWith("192.168") || ip.startsWith("147.32")) {
-                            return ip;
-                        }
+                    if (address instanceof Inet4Address && !address.isLoopbackAddress() && !address.isLinkLocalAddress()) {
+                        return address.getHostAddress();
                     }
                 }
             }
@@ -164,4 +165,5 @@ public class Server {
         }
         return "Unknown IP";
     }
+
 }

@@ -119,13 +119,6 @@ public class PokerTableView extends BorderPane {
         tr.getMyHand().add(new Card(Rank.ACE, Suit.SPADES));
         tr.getMyHand().add(new Card(Rank.KING, Suit.SPADES));
 
-        for (Suit suit : Suit.values() ) {
-            for (Rank rank : Rank.values()) {
-                Card card = new Card(rank, suit);
-                System.out.println("Card: " + card + ", Sprite index: " + getSpriteIndex(card));
-            }
-        }
-
         tr.setCommunityCards(communityCards);
 
         updateView(tr);
