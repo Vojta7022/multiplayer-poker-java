@@ -1,8 +1,6 @@
 package cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation;
 
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
-import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Deck;
-import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -15,6 +13,8 @@ public class TableRepresentation implements Serializable {
     private int dealerIndex;
     private int waitingForIndex;
     private ArrayList<Card> myHand;
+    private int yourIndex;
+    private ArrayList<String> chatMessages = new ArrayList<>();
 
     private boolean gameStarted;
 
@@ -95,7 +95,23 @@ public class TableRepresentation implements Serializable {
         return String.valueOf(potSize);
     }
 
-    public String getBetThreshold() {
-        return String.valueOf(betThreshold);
+    public int getBetThreshold() {
+        return betThreshold;
+    }
+
+    public void setYourIndex(int playersIndex) {
+        this.yourIndex = playersIndex;
+    }
+
+    public int getYourIndex() {
+        return yourIndex;
+    }
+
+    public ArrayList<String> getChatMessages() {
+        return chatMessages;
+    }
+
+    public void setChatMessages(ArrayList<String> chatMessages) {
+        this.chatMessages = chatMessages;
     }
 }

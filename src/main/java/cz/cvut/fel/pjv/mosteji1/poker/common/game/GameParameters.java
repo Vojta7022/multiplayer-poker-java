@@ -12,7 +12,7 @@ public abstract class GameParameters {
 
     // Graphics:
 
-    public static int CARD_COUNT = 52;
+    public static final int CARD_COUNT = 52;
 
 
 }

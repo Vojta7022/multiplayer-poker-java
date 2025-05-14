@@ -70,7 +70,7 @@ public class MenuView extends VBox {
         }
         avatarComboBox.setItems(avatars);
 
-        avatarComboBox.setCellFactory(param -> new ListCell<>() {
+        avatarComboBox.setCellFactory(_ -> new ListCell<>() {
             private final ImageView imageView = new ImageView();
 
             @Override

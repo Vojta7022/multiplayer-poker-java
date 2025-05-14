@@ -9,8 +9,8 @@ import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.BlockingQueue;
 
 public class Table {
     private final Server parent;
@@ -21,24 +21,27 @@ public class Table {
     private int betThreshold;
     private int dealerIndex;
     private int waitingForIndex = 2;
+    private final ArrayList<String> chatMessages = new ArrayList<>();
+    private final BlockingQueue<String> commandQueue;
+    Scanner scanner = new Scanner(System.in);       // TODO: remove
 
-    public Table(Server parent) {
+    public Table(Server parent, BlockingQueue<String> commandQueue) {
         // Logic to start the game
         this.parent = parent;
-
         this.players = new ArrayList<>();
+        this.communityCards = new ArrayList<>();
+        this.commandQueue = commandQueue;
 
-        for (ServerEndpoint endpoint : parent.getServerEndpoints()) {
+        /*for (ServerEndpoint endpoint : parent.getServerEndpoints()) {
             Random random = new Random();
             Player player = new Player(GameParameters.names[random.nextInt(GameParameters.names.length)], 1, 1000);
             players.add(player);
-        }
+        }*/
     }
 
-    public void startRound() {
+    public void startRound() throws InterruptedException {
 
         deck = new Deck();
-        communityCards = new ArrayList<>();
         potSize = 0;
         betThreshold = 0;
 
@@ -55,7 +58,12 @@ public class Table {
         dealHoleCards();
         System.out.println("Dealing hole cards...");
 
+        parent.sendUpdatesToAllPlayers();
+
         letPlayersBet((dealerIndex + 3) % players.size());        // start from player to the left of big blind
+
+
+        // TODO: checkni jestli jsou hraci bez chipu a odpoj je
 
         if (numberOfActivePlayers() > 1) {
             dealFlop();
@@ -114,9 +122,7 @@ public class Table {
         return runningWinner;
     }
 
-    private void letPlayersBet(int bettingStartIndex) {
-        Scanner scanner = new Scanner(System.in);
-
+    private void letPlayersBet(int bettingStartIndex) throws InterruptedException {
         boolean allPlayersFolded = false;
         while (!allPlayersFolded) {
             for (Player player : players) {
@@ -126,14 +132,14 @@ public class Table {
                     if (bet < betThreshold) {
                         int minimumBet = betThreshold - bet;
                         System.out.println(player.getName() + ", you need to bet at least " + minimumBet + " chips.");
-                        String action = scanner.next();
+                        String action = commandQueue.take();
                         switch (action) {
-                            case "fold" -> {
+                            case "FOLD" -> {
                                 player.fold();
                                 System.out.println(player.getName() + " folds.");
                             }
-                            case "call" -> {
-                                if (placeBet(minimumBet, player)) {
+                            case "CALL" -> {
+                                if (canPlaceBet(minimumBet, player)) {
                                     System.out.println(player.getName() + " calls.");
                                     potSize += minimumBet;
                                 } else {
@@ -142,9 +148,33 @@ public class Table {
                                     System.out.println("Player " + player.getName() + " has disconnected.");
                                 }
                             }
-                            case "raise" -> {
-                                int amountToRaise = scanner.nextInt();
-                                if (placeBet(amountToRaise, player)) {
+                            case "RAISE" -> {
+                                int amountToRaise = Integer.parseInt(commandQueue.take());
+                                if (canPlaceBet(amountToRaise + minimumBet, player)) {
+                                    System.out.println(player.getName() + " raises to " + (amountToRaise + minimumBet) + ".");
+                                    betThreshold = player.getBet();
+                                    potSize += amountToRaise;
+                                } else {
+                                    player.disconnect();
+                                    players.remove(player);
+                                    System.out.println("Player " + player.getName() + " has disconnected.");
+                                }
+                            }
+                            case "ALLIN" -> {
+                                potSize += player.getChips();
+                                betThreshold = Math.max(player.getBet(), betThreshold);
+                                player.setAllIn(true);
+                                player.setChips(0);
+                            }
+                        }
+                    } else {
+                        System.out.println(player.getName() + ", you can either check or raise.");
+                        String action = commandQueue.take();
+                        switch (action) {
+                            case "CHECK" -> System.out.println(player.getName() + " checks.");
+                            case "RAISE" -> {
+                                int amountToRaise = Integer.parseInt(commandQueue.take());
+                                if (canPlaceBet(amountToRaise, player)) {
                                     System.out.println(player.getName() + " raises to " + amountToRaise + ".");
                                     betThreshold = player.getBet();
                                     potSize += amountToRaise;
@@ -154,22 +184,15 @@ public class Table {
                                     System.out.println("Player " + player.getName() + " has disconnected.");
                                 }
                             }
-                        }
-                    } else {
-                        System.out.println(player.getName() + ", you can either check or raise.");
-                        String action = scanner.next();
-                        switch (action) {
-                            case "check" -> System.out.println(player.getName() + " checks.");
-                            case "raise" -> {
-                                int amountToRaise = scanner.nextInt();
-                                placeBet(amountToRaise, player);
-                                System.out.println(player.getName() + " raises to " + amountToRaise + ".");
-                                betThreshold = player.getBet();
-                                potSize += amountToRaise;
-                            }
-                            case "fold" -> {
+                            case "FOLD" -> {
                                 player.fold();
                                 System.out.println(player.getName() + " folds.");
+                            }
+                            case "ALLIN" -> {
+                                potSize += player.getChips();
+                                betThreshold = Math.max(player.getBet(), betThreshold);
+                                player.setAllIn(true);
+                                player.setChips(0);
                             }
                         }
                     }
@@ -203,7 +226,7 @@ public class Table {
     private void placeBlinds(int smallBlindIndex) {
         if (players.size() < 2) return;
         System.out.println(players.get(smallBlindIndex).toString() + " posts small blind: " + GameParameters.SMALL_BLIND);
-        if (!placeBet(GameParameters.SMALL_BLIND, players.get(smallBlindIndex))) {
+        if (!canPlaceBet(GameParameters.SMALL_BLIND, players.get(smallBlindIndex))) {
             players.get(smallBlindIndex).disconnect();
             players.remove(smallBlindIndex);
             System.out.println("Player " + players.get(smallBlindIndex).getName() + " has disconnected.");
@@ -211,7 +234,7 @@ public class Table {
             System.out.println(players.get(smallBlindIndex).toString() + " posts small blind: " + GameParameters.SMALL_BLIND);
         }
 
-        if (!placeBet(GameParameters.BIG_BLIND, players.get((smallBlindIndex + 1) % players.size()))) {
+        if (!canPlaceBet(GameParameters.BIG_BLIND, players.get((smallBlindIndex + 1) % players.size()))) {
             players.get(smallBlindIndex).disconnect();
             players.remove(smallBlindIndex);
             System.out.println("Player " + players.get((smallBlindIndex + 1) % players.size()).getName() + " has disconnected.");
@@ -229,6 +252,7 @@ public class Table {
         for (Player player : players) {
             player.receiveCard(deck.dealCard());
             player.receiveCard(deck.dealCard());
+            System.out.println(player.getName() + " receives " + player.getHand().get(0) + " and " + player.getHand().get(1));
         }
     }
 
@@ -254,7 +278,7 @@ public class Table {
         return Math.max(betPerPlayer - player.getBet(), 0);
     }
 
-    public boolean placeBet(int amount, Player player) {
+    public boolean canPlaceBet(int amount, Player player) {
         if (amount <= player.getChips() && amount >= minimumValidBet(player)) {
             player.setBet(amount + player.getBet());
             player.setChips(player.getChips() - amount);
@@ -300,5 +324,14 @@ public class Table {
 
     public boolean isGameWon() {
         return players.size() == 1;
+    }
+
+    public void appendMessageToChat(String s) {
+        chatMessages.add(s);
+        System.out.println("ChatMessages: " + chatMessages);
+    }
+
+    public ArrayList<String> getChatMessages() {
+        return chatMessages;
     }
 }

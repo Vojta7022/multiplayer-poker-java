@@ -11,7 +11,6 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,13 +28,13 @@ public class ClientMain extends Application {
     private String name;
 
     @Override
-    public void start(Stage stage) throws FileNotFoundException {
+    public void start(Stage stage) {
         this.primaryStage = stage;
         graphicsInitialize();
         showMenuScene();
     }
 
-    private void graphicsInitialize() throws FileNotFoundException {
+    private void graphicsInitialize() {
         // Cards
         for (int i = 0; i < GameParameters.CARD_COUNT; i++) {
             Image image = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/card_" + i + ".png")));
@@ -60,7 +59,7 @@ public class ClientMain extends Application {
 
         MenuView menuView = new MenuView();
 
-        menuView.connectButton.setOnAction(e -> {
+        menuView.connectButton.setOnAction(_ -> {
             String ip = MenuView.ipField.getText();
             String portStr = MenuView.portField.getText();
             name = MenuView.playerNameField.getText();
@@ -87,6 +86,7 @@ public class ClientMain extends Application {
 
     private void showTableScene() {
         PokerTableView tableView = new PokerTableView(this.myEndpoint);
+        myEndpoint.setPokerTableView(tableView);
         Scene tableScene = new Scene(tableView);
         tableScene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style.css")).toExternalForm());
         primaryStage.setScene(tableScene);

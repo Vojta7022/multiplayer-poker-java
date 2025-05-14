@@ -1,6 +1,8 @@
 package cz.cvut.fel.pjv.mosteji1.poker.common.cards;
 
-public record Card(Rank rank, Suit suit) {
+import java.io.Serializable;
+
+public record Card(Rank rank, Suit suit) implements Serializable {
 
     @Override
     public String toString() {

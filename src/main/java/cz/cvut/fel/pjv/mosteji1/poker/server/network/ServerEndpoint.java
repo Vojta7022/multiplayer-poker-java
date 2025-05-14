@@ -6,12 +6,13 @@ import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
 import java.io.*;
 import java.net.Socket;
 
-public class ServerEndpoint {
+public class ServerEndpoint implements Runnable {
     private final Socket clientSocket;
     private BufferedReader input;
     private PrintWriter output;
+    private ObjectOutputStream objectOutputStream;
     private boolean isActive;
-    private Server parentServer;
+    private final Server parentServer;
 
     private String name;
     private int avatarIndex;
@@ -23,7 +24,8 @@ public class ServerEndpoint {
         try {
             this.input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             this.output = new PrintWriter(clientSocket.getOutputStream(), true);
-           // name and avatarIndex are read from the client
+            this.objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+            // name and avatarIndex are read from the client
             this.name = input.readLine();
             this.avatarIndex = Integer.parseInt(input.readLine());
             System.out.println("Client connected: " + name + ", Avatar index: " + avatarIndex);
@@ -35,23 +37,21 @@ public class ServerEndpoint {
 
     public void run() {
         try {
-            // Hlavní smyčka pro příjem zpráv od klienta a jejich zpracování
+            // Main loop for reading messages from the client
             while (isActive) {
-                String message = input.readLine();  // Čtení zpráv od klienta
+                String message = input.readLine();
                 if (message == null) {
-                    break;  // Pokud je zpráva null, znamená to, že klient se odpojil
+                    break;  // If the message is null, the client has disconnected
                 }
 
-                System.out.println("Message accepted from client: " + message);
-
-                // Zpracování přijaté zprávy (např. příkaz pro sázku, pozdrav atd.)
+                // Handling the accepted message
                 handleClientMessage(message);
             }
         } catch (IOException e) {
             System.err.println("Error communicating with client: " + e.getMessage());
         } finally {
             try {
-                // Uzavření socketu, když klient odpojí
+                // Closing socket and streams
                 clientSocket.close();
             } catch (IOException e) {
                 System.err.println("Error closing socket: " + e.getMessage());
@@ -60,48 +60,74 @@ public class ServerEndpoint {
     }
 
     private void handleClientMessage(String message) {
-        // Zde přidej logiku pro různé typy zpráv od klienta
-        // Například: příkazy pro sázky, zobrazení karet, kontrolu hry apod.
 
-        String[] messageParts = message.split(" ");
+        // Don't process messages if the game has not started
+        if (!parentServer.isGameStarted()) {
+            System.out.println("Game has not started yet. Ignoring message: " + message);
+            return;
+        }
+
+        String[] messageParts = message.split(" ", 3);
 
         switch (messageParts[0]) {
-            case "bet":
-                // Zpracování sázky
+            // Handle chat messages
+            case "CHAT":
+                String chatMessage = message.substring(5);
+                System.out.println("Chat message from client " + name + ": " + chatMessage);
+                parentServer.getTable().appendMessageToChat(name + ": " + chatMessage);
+                parentServer.sendUpdatesToAllPlayers();
                 break;
-            case "check":
-                // Zpracování checku
+
+            case "FOLD":
+                System.out.println(name + " has requested to fold.");
+                parentServer.getCommandQueue().offer("FOLD");
+                parentServer.sendUpdatesToAllPlayers();
                 break;
-            case "fold":
-                // Zpracování foldování
+
+            case "CALL":
+                System.out.println(name + " has requested to call.");
+                parentServer.getCommandQueue().offer("CALL");
+                parentServer.sendUpdatesToAllPlayers();
                 break;
-            case "raise":
-                // Zpracování raisu
+
+            case "CHECK":
+                System.out.println(name + " has requested to check.");
+                parentServer.getCommandQueue().offer("CHECK");
+                parentServer.sendUpdatesToAllPlayers();
                 break;
+
+            case "RAISE":
+                int raiseAmount = Integer.parseInt(messageParts[1]);
+                System.out.println(name + " has requested to raise by " + raiseAmount);
+                parentServer.getCommandQueue().offer("RAISE");
+                parentServer.getCommandQueue().offer(String.valueOf(raiseAmount));
+                parentServer.sendUpdatesToAllPlayers();
+                break;
+
+            case "ALLIN":
+                System.out.println(name + " has requested to go all-in.");
+                parentServer.getCommandQueue().offer("ALLIN");
+                parentServer.sendUpdatesToAllPlayers();
+                break;
+
             default:
-                // Neznámý příkaz
-                sendMessage("Neznámý příkaz.");
+                // Unknown command
+                sendMessage("Unknown command: " + message);
         }
     }
 
     public void sendMessage(String message) {
-        // Posílání zpráv zpět klientovi
+        // Send a message to the client
         output.println(message);
     }
 
     public void sendTableRepresentation(TableRepresentation tableRepresentation) throws IOException {
-        ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
-        out.writeObject(tableRepresentation);
-        out.flush();
-        out.close();
+        objectOutputStream.writeObject(tableRepresentation);
+        objectOutputStream.flush();
     }
 
     public String getName() {
         return name;
-    }
-
-    public boolean isActive() {
-        return isActive;
     }
 
     public int getAvatarIndex() {

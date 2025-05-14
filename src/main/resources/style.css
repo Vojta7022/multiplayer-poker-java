@@ -83,3 +83,87 @@
     -fx-background-color: #2E7D32;
     -fx-text-fill: white;
 }
+
+.chat-box {
+    -fx-background-color: #1f441e;
+    -fx-border-color: #444;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.chat-area {
+    -fx-control-inner-background: #e8f5e9;
+    -fx-font-size: 12px;
+    -fx-background-insets: 0;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.chat-input {
+    -fx-background-radius: 5;
+    -fx-padding: 4 8;
+}
+
+.chat-send-button {
+    -fx-background-color: #66bb6a;
+    -fx-text-fill: white;
+    -fx-background-radius: 5;
+    -fx-padding: 4 12;
+    -fx-font-weight: bold;
+}
+
+.chat-send-button:hover {
+    -fx-background-color: #4caf50;
+    -fx-cursor: hand;
+}
+
+.raise-slider {
+    -fx-alignment: center;
+    -fx-control-inner-background: #1e1e1e;
+    -fx-background-color: transparent;
+    -fx-padding: 10 0 10 0;
+}
+
+.raise-slider .track {
+    -fx-background-color: #4CAF50;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+    -fx-pref-height: 6px;
+    -fx-effect: dropshadow(gaussian, #2e7d32, 2, 0.4, 0, 0);
+    -fx-transition: all 0.3s ease;
+}
+
+.raise-slider:hover .track {
+    -fx-background-color: #66BB6A;
+}
+
+.raise-slider .thumb {
+    -fx-background-color: #C8E6C9;
+    -fx-background-radius: 50%;
+    -fx-effect: dropshadow(gaussian, #66BB6A, 5, 0.5, 0, 0);
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-transition: all 0.3s ease;
+}
+
+.raise-slider:hover .thumb {
+    -fx-background-color: #A5D6A7;
+    -fx-scale-x: 1.1;
+    -fx-scale-y: 1.1;
+}
+
+.raise-slider .tick-mark {
+    -fx-stroke: #A5D6A7;
+}
+
+.raise-slider .tick-label {
+    -fx-text-fill: #C8E6C9;
+    -fx-font-size: 12px;
+}
+
+.raise-label {
+    -fx-text-fill: #C8E6C9;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, #2e7d32, 1, 0.3, 0, 0);
+}
