@@ -334,4 +334,13 @@ public class Table {
     public ArrayList<String> getChatMessages() {
         return chatMessages;
     }
+
+    public Player getPlayerByName(String name) {
+        for (Player player : players) {
+            if (player.getName().equals(name)) {
+                return player;
+            }
+        }
+        return null;
+    }
 }

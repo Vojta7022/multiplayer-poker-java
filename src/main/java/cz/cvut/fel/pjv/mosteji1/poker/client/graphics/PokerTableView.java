@@ -317,5 +317,14 @@ public class PokerTableView extends BorderPane {
         low = tableRepresentation.getBetThreshold();
 
         // Threshold
+        // TODO: update this when the player raises
+
+        // Enable/Disable Buttons
+        boolean isYourTurn = tableRepresentation.getYourIndex() == tableRepresentation.getWaitingForIndex();
+        foldButton.setDisable(!isYourTurn);
+        checkButton.setDisable(!isYourTurn || tableRepresentation.getBetThreshold() != tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).bet());
+        callButton.setDisable(!isYourTurn || tableRepresentation.getBetThreshold() <= tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).bet());
+        raiseButton.setDisable(!isYourTurn || tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips() < tableRepresentation.getBetThreshold());
+        allInButton.setDisable(!isYourTurn || tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips() <= 0);
     }
 }

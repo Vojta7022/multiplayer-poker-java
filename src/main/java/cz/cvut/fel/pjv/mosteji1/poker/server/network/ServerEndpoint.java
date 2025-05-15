@@ -67,6 +67,14 @@ public class ServerEndpoint implements Runnable {
             return;
         }
 
+        // Check if the message is from the correct player whose turn it is
+        int currentPlayerIndex = parentServer.getTable().getWaitingForIndex();
+        int thisPlayerIndex = parentServer.getTable().getPlayers().indexOf(parentServer.getTable().getPlayerByName(name));
+        if (currentPlayerIndex != thisPlayerIndex) {
+            System.out.println("It's not " + name + "'s turn. Ignoring message: " + message);
+            return;
+        }
+
         String[] messageParts = message.split(" ", 3);
 
         switch (messageParts[0]) {
