@@ -1,12 +1,8 @@
 package cz.cvut.fel.pjv.mosteji1.poker.client.network;
 
-import cz.cvut.fel.pjv.mosteji1.poker.ClientMain;
 import cz.cvut.fel.pjv.mosteji1.poker.client.graphics.PokerTableView;
-import javafx.application.Platform;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
@@ -17,21 +13,18 @@ public class ClientEndpoint {
     private PrintWriter output;
     private final String name;
     private final int avatarIndex;
-    private PokerTableView pokerTableView;
 
     public ClientEndpoint(String serverAddress, int serverPort, String name, int avatarIndex) throws IOException {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
         this.name = name;
         this.avatarIndex = avatarIndex;
-        this.pokerTableView = null;
     }
 
     public void start() throws IOException {
         try {
             // Connect to the server
             socket = new Socket(serverAddress, serverPort);
-            System.out.println("Connected to the server.");
 
             // Initialize the output stream
             output = new PrintWriter(socket.getOutputStream(), true);
@@ -50,17 +43,6 @@ public class ClientEndpoint {
         output.println(message);
     }
 
-    private void closeConnection() {
-        try {
-            if (socket != null) {
-                socket.close();
-            }
-            System.out.println("Connection closed.");
-        } catch (IOException e) {
-            System.err.println("Error closing connection: " + e.getMessage());
-        }
-    }
-
     public boolean isClosed() {
         return socket == null;
     }
@@ -73,11 +55,10 @@ public class ClientEndpoint {
         return name;
     }
 
-    public int getAvatarIndex() {
-        return avatarIndex;
+    public boolean isConnected() {
+        return socket != null && !socket.isClosed();
     }
 
-    public void setPokerTableView(PokerTableView pokerTableView) {
-        this.pokerTableView = pokerTableView;
+    public void setPokerTableView(PokerTableView tableView) {
     }
 }

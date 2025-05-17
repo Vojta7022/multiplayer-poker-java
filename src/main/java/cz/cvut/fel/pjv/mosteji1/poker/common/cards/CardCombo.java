@@ -1,6 +1,5 @@
 package cz.cvut.fel.pjv.mosteji1.poker.common.cards;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class CardCombo implements Comparable<CardCombo> {
@@ -13,20 +12,11 @@ public class CardCombo implements Comparable<CardCombo> {
     private HandRanking handRanking;
     private final int[] kickers = new int[5];
 
-    public CardCombo(Card[] cards) {
-        assert cards.length == 7;
-        this.cards = cards;
-        initializeRankArrays();
-        determineHandRanking();
-    }
-
     public CardCombo(List<Card> cards1, List<Card> cards2) {
-        List<Card> tmp = cards1;
-        tmp.addAll(cards2);
+        cards1.addAll(cards2);
 
-        this.cards = tmp.toArray(new Card[7]);
+        this.cards = cards1.toArray(new Card[7]);
         assert this.cards.length == 7;
-
 
         initializeRankArrays();
         determineHandRanking();

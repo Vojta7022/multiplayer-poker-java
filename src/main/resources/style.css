@@ -92,7 +92,7 @@
 }
 
 .chat-area {
-    -fx-control-inner-background: #e8f5e9;
+    -fx-background-color: #ffffff;
     -fx-font-size: 12px;
     -fx-background-insets: 0;
     -fx-border-radius: 5;

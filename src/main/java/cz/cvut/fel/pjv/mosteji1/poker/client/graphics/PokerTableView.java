@@ -5,8 +5,9 @@ import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.PlayerRepresenta
 import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.TableRepresentation;
 import cz.cvut.fel.pjv.mosteji1.poker.client.network.ClientEndpoint;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
+import cz.cvut.fel.pjv.mosteji1.poker.common.game.ChatMessage;
 import cz.cvut.fel.pjv.mosteji1.poker.common.game.GameParameters;
-import cz.cvut.fel.pjv.mosteji1.poker.myUtils.MyUtils;
+import cz.cvut.fel.pjv.mosteji1.poker.utils.MyUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -15,11 +16,14 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
+import javafx.scene.text.TextFlow;
+import javafx.scene.text.Text;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.List;
 
-import static cz.cvut.fel.pjv.mosteji1.poker.myUtils.MyUtils.getSpriteIndex;
+import static cz.cvut.fel.pjv.mosteji1.poker.utils.MyUtils.getSpriteIndex;
 
 public class PokerTableView extends BorderPane {
 
@@ -35,7 +39,7 @@ public class PokerTableView extends BorderPane {
     private final HBox communityCards;
     private final HBox playerCards;
     private final Label potSizeBox;
-    public final TextArea chatArea;
+    public final TextFlow chatArea;
     public final TextField chatInput;
     private int low, high;
 
@@ -164,9 +168,7 @@ public class PokerTableView extends BorderPane {
         chatBox.getStyleClass().add("chat-box");
         chatBox.setPrefWidth(250);
 
-        chatArea = new TextArea();
-        chatArea.setEditable(false);
-        chatArea.setWrapText(true);
+        chatArea = new TextFlow();
         chatArea.getStyleClass().add("chat-area");
         chatArea.setPrefHeight(400);
         chatArea.setPrefWidth(230);
@@ -306,13 +308,9 @@ public class PokerTableView extends BorderPane {
                 " | Bet Threshold: $" + tableRepresentation.getBetThreshold());
 
         // Chat messages
-        chatArea.clear();
-        for (String message : tableRepresentation.getChatMessages()) {
-            chatArea.appendText(message + "\n");
-        }
+        updateChatArea(tableRepresentation.getChatMessages());
 
         // Slider values
-
         high = tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips();
         low = tableRepresentation.getBetThreshold();
 
@@ -326,5 +324,18 @@ public class PokerTableView extends BorderPane {
         callButton.setDisable(!isYourTurn || tableRepresentation.getBetThreshold() <= tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).bet());
         raiseButton.setDisable(!isYourTurn || tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips() < tableRepresentation.getBetThreshold());
         allInButton.setDisable(!isYourTurn || tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips() <= 0);
+    }
+
+    private void updateChatArea(List<ChatMessage> messages) {
+        Platform.runLater(() -> {
+            chatArea.getChildren().clear();
+            for (ChatMessage message : messages) {
+                Text textNode = new Text(message.text() + "\n");
+                if (message.isBold()) {
+                    textNode.setStyle("-fx-font-weight: bold;");
+                }
+                chatArea.getChildren().add(textNode);
+            }
+        });
     }
 }

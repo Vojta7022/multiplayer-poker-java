@@ -19,9 +19,23 @@ import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
 */
 
 
+/**
+ * Entry point for the server-side of the poker application.
+ * <p>
+ * Before starting the server, ensure that port 12345 is open in the Windows Firewall,
+ * following the instructions provided in the comment above. The server will then start
+ * and listen on this port for incoming client connections on the same network.
+ *
+ * @see cz.cvut.fel.pjv.mosteji1.poker.server.Server
+ */
 public class ServerMain {
 
+    /**
+     * Main method to start the server.
+     *
+     * @param args command line arguments
+     */
     public static void main(String[] args) {
-        Server server = new Server();
+        new Server();
     }
 }

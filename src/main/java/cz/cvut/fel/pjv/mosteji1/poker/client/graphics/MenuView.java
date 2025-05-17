@@ -1,5 +1,6 @@
 package cz.cvut.fel.pjv.mosteji1.poker.client.graphics;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -16,10 +17,13 @@ import javafx.scene.control.ListCell;
 import cz.cvut.fel.pjv.mosteji1.poker.common.game.GameParameters;
 import javafx.util.Pair;
 
+import java.io.File;
+import java.util.Map;
 import java.util.Objects;
 
 public class MenuView extends VBox {
     public final Button connectButton;
+    public final Button loadButton;
     public static final TextField ipField = new TextField();
     public static final TextField portField = new TextField();
     public static final TextField playerNameField = new TextField();
@@ -57,6 +61,10 @@ public class MenuView extends VBox {
 
         connectButton = new Button("Connect");
         connectButton.getStyleClass().add("fancy-button");
+
+        loadButton = new Button("Load Game Data");
+        loadButton.getStyleClass().add("fancy-button");
+        loadButton.setOnAction(_ -> loadGameData());
 
         avatarComboBox.setPrefWidth(250);
         avatarComboBox.getStyleClass().add("avatar-combobox");
@@ -112,6 +120,34 @@ public class MenuView extends VBox {
         avatarComboBox.setButtonCell(avatarComboBox.getCellFactory().call(null));
 
         setBackground(new Background(backgroundImage));
-        getChildren().addAll(welcome, ipField, portField, playerNameField, avatarComboBox, connectButton, statusLabel);
+        getChildren().addAll(welcome, ipField, portField, playerNameField, avatarComboBox, connectButton, loadButton, statusLabel);
+    }
+
+    private void loadGameData() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            // Load the file from the resources folder
+            File file = new File(Objects.requireNonNull(getClass().getResource("/game_data.json")).toURI());
+
+            // Read the JSON data
+            Map<String, String> data = objectMapper.readValue(file, new com.fasterxml.jackson.core.type.TypeReference<>() {});
+
+            ipField.setText(data.getOrDefault("ip", ""));
+            portField.setText(data.getOrDefault("port", ""));
+            playerNameField.setText(data.getOrDefault("playerName", ""));
+
+            String avatarIndexStr = data.get("avatarIndex");
+            if (avatarIndexStr != null) {
+                int avatarIndex = Integer.parseInt(avatarIndexStr);
+                if (avatarIndex >= 0 && avatarIndex < avatarComboBox.getItems().size()) {
+                    avatarComboBox.getSelectionModel().select(avatarIndex);
+                }
+            }
+
+            statusLabel.setText("Values loaded successfully.");
+        } catch (Exception e) {
+            statusLabel.setText("Error loading data.");
+            e.printStackTrace();
+        }
     }
 }

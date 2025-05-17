@@ -8,62 +8,61 @@ import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-
 import static java.lang.Thread.interrupted;
 
+/**
+ * {@code Server} listens for client connections and manages the poker game logic.
+ * It handles player registration, game start, and communication between players.
+ */
 public class Server {
 
-    private static final int PORT = 12345;
-    private final List<ServerEndpoint> serverEndpoints = new ArrayList<>();
+    // List of ServerEndpoint instances representing connected clients
+    private final List<ServerEndpoint> serverEndpoints = Collections.synchronizedList(new ArrayList<>());
+    // Game table instance
     private final Table table;
+    // Scanner for reading console input
     private final Scanner scanner = new Scanner(System.in);
+    // BlockingQueue for handling commands
     private final BlockingQueue<String> commandQueue = new ArrayBlockingQueue<>(10);
+    // Flag indicating whether the game has started
     private boolean gameStarted = false;
 
+    /**
+     * Constructs and initializes the server, including the game table and server socket.
+     * Starts listening for client connections and command input.
+     */
     public Server() {
         table = new Table(this, commandQueue);
         startServer();
     }
 
+    /**
+     * Returns the game table managed by the server.
+     *
+     * @return the {@link Table} instance
+     */
     public Table getTable() {
         return table;
     }
 
+    /**
+     * Starts the server socket, accepts client connections, and waits for console commands
+     * to start or stop the game.
+     */
     public void startServer() {
         try {
-            ServerSocket serverSocket = new ServerSocket(PORT);
+            ServerSocket serverSocket = new ServerSocket(GameParameters.PORT);
 
             String serverIp = getExternalIP();
-            System.out.println("Server started on IP: " + serverIp + ", port " + PORT);
+            System.out.println("Server started on IP: " + serverIp + ", port " + GameParameters.PORT);
 
             // Accepting incoming client connections
             System.out.println("Waiting for clients to connect...");
 
-            Thread acceptClients = new Thread(() -> {
-                Socket clientSocket;
-                while (!interrupted()) {
-                    try {
-                        clientSocket = serverSocket.accept();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    System.out.println("New client connected: " + clientSocket.getInetAddress());
-
-                    ServerEndpoint serverEndpoint = new ServerEndpoint(clientSocket, this);
-                    addClientHandler(serverEndpoint);
-
-                    // Start a new thread for the client
-                    new Thread(serverEndpoint).start();
-                }
-            });
-
-            acceptClients.start();
+            Thread acceptClients = acceptClients(serverSocket);
 
             while (true) {
                 String command = scanner.nextLine();
@@ -74,7 +73,8 @@ public class Server {
                 } else if (command.equalsIgnoreCase("exit")) {
                     System.out.println("Exiting server...");
                     serverSocket.close();
-                    System.exit(0);
+                    shutdown(serverSocket);
+                    return;
                 } else {
                     System.out.println("Unknown command. Use 'start' to start the game or 'exit' to exit.");
                 }
@@ -85,6 +85,47 @@ public class Server {
         }
     }
 
+    // Shuts down the server and closes all client connections.
+    private void shutdown(ServerSocket serverSocket) {
+        try {
+            for (ServerEndpoint endpoint : serverEndpoints) {
+                endpoint.close();
+            }
+            serverSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Accepts incoming client connections and starts a new thread for each client.
+    private Thread acceptClients(ServerSocket serverSocket) {
+        Thread acceptClients = new Thread(() -> {
+            Socket clientSocket;
+            while (!interrupted()) {
+                try {
+                    clientSocket = serverSocket.accept();
+                } catch (IOException e) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        System.out.println("Accept thread interrupted, stopping...");
+                        break;
+                    }
+                    throw new RuntimeException(e);
+                }
+                System.out.println("New client connected: " + clientSocket.getInetAddress());
+
+                ServerEndpoint serverEndpoint = new ServerEndpoint(clientSocket, this);
+                addClientHandler(serverEndpoint);
+
+                // Start a new thread for the client
+                new Thread(serverEndpoint).start();
+            }
+        });
+
+        acceptClients.start();
+        return acceptClients;
+    }
+
+    // Starts the game when enough players are connected, initializes the game table and manages the game loop.
     private void startGame() {
         if (serverEndpoints.size() >= GameParameters.MIN_PLAYERS && serverEndpoints.size() <= GameParameters.MAX_PLAYERS) {
             table.addPlayers(serverEndpoints);
@@ -101,24 +142,35 @@ public class Server {
 
         // Start the game loop
         Thread gameLoop = new Thread(() -> {
-            while (!table.isGameWon()) {
-                try {
-                    while (!table.isGameWon()) {
-                        table.startRound();
-                    }
-                } catch (InterruptedException e) {
-                    System.err.println("Game loop interrupted: " + e.getMessage());
+            try {
+                while (!table.isGameWon()) {
+                    table.startRound();
                 }
+            } catch (InterruptedException e) {
+                System.err.println("Game loop interrupted: " + e.getMessage());
             }
         });
         gameLoop.start();
     }
 
+    /**
+     * Adds a new client handler to the list of connected clients.
+     *
+     * @param serverEndpoint the endpoint representing the connected client
+     */
     public void addClientHandler(ServerEndpoint serverEndpoint) {
         serverEndpoints.add(serverEndpoint);
         System.out.println("New client added.");
     }
 
+    /**
+     * Creates a {@link TableRepresentation} tailored to the given player, containing
+     * personalized and general information about the game state.
+     *
+     * @param receiver the player receiving the table representation
+     * @param playersIndex the index of the player in the players list
+     * @return a {@link TableRepresentation} object
+     */
     public TableRepresentation getTableRepresentation(Player receiver, int playersIndex) {
         TableRepresentation ret = new TableRepresentation();
 
@@ -126,7 +178,6 @@ public class Server {
             ret.addPlayer(player.getName(), player.getAvatarIndex(), player.getChips(), player.getBet(), player.hasFolded(), player.isAllIn());
         }
 
-        System.out.println("Hand: " + receiver.getHand());
         ret.setPotSize(table.getPotSize());
         ret.setBetThreshold(table.getBetThreshold());
         /*ret.setDealerIndex( ( table.getDealerIndex() - playersIndex ) % table.getPlayers().size() );*/
@@ -136,11 +187,13 @@ public class Server {
         ret.setWaitingForIndex(table.getWaitingForIndex());
         ret.setYourIndex(playersIndex);
         ret.setChatMessages(new ArrayList<>(table.getChatMessages()));
-        System.out.println("Hand in representation: " + ret.getMyHand());
 
         return ret;
     }
 
+    /**
+     * Sends an updated table representation to all connected players.
+     */
     public void sendUpdatesToAllPlayers() {
         System.out.println("Sending updates to all players...");
         for (Player player : table.getPlayers()) {
@@ -154,15 +207,7 @@ public class Server {
         }
     }
 
-    public void sendMessageToClient(ServerEndpoint serverEndpoint, String message) {
-        // Sending a message to a specific client
-        serverEndpoint.sendMessage(message);
-    }
-
-    public List<ServerEndpoint> getServerEndpoints() {
-        return serverEndpoints;
-    }
-
+    // Returns the  IP address on which the server is running on.
     private String getExternalIP() {
         try {
             Enumeration<NetworkInterface> networks = NetworkInterface.getNetworkInterfaces();
@@ -209,10 +254,20 @@ public class Server {
         return "Unknown IP";
     }
 
+    /**
+     * Returns the command queue used for communication between server and game logic.
+     *
+     * @return a blocking queue of server commands
+     */
     public BlockingQueue <String> getCommandQueue() {
         return commandQueue;
     }
 
+    /**
+     * Returns whether the game has started.
+     *
+     * @return {@code true} if the game has started; {@code false} otherwise
+     */
     public boolean isGameStarted() {
         return gameStarted;
     }

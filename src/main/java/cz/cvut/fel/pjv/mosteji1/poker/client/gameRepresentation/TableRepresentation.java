@@ -1,6 +1,7 @@
 package cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation;
 
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
+import cz.cvut.fel.pjv.mosteji1.poker.common.game.ChatMessage;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -14,17 +15,7 @@ public class TableRepresentation implements Serializable {
     private int waitingForIndex;
     private ArrayList<Card> myHand;
     private int yourIndex;
-    private ArrayList<String> chatMessages = new ArrayList<>();
-
-    private boolean gameStarted;
-
-    public boolean isGameStarted() {
-        return gameStarted;
-    }
-
-    public void setGameStarted(boolean gameStarted) {
-        this.gameStarted = gameStarted;
-    }
+    private ArrayList<ChatMessage> chatMessages = new ArrayList<>();
 
     public TableRepresentation() {
         this.players = new ArrayList<>();
@@ -33,7 +24,6 @@ public class TableRepresentation implements Serializable {
         this.betThreshold = 0;
         this.dealerIndex = 0;
         this.waitingForIndex = 0;
-        this.gameStarted = false;
     }
 
     public void addPlayer(String name, int avatarIndex, int startingChips, int bet, boolean folded, boolean isAllIn) {
@@ -57,11 +47,6 @@ public class TableRepresentation implements Serializable {
         this.myHand = myHand;
         assert myHand.size() == 2;
     }
-
-    public void dropHand() {
-        myHand = null;
-    }
-
 
     public void setCommunityCards(ArrayList<Card> communityCards) {
         this.communityCards = communityCards;
@@ -107,11 +92,11 @@ public class TableRepresentation implements Serializable {
         return yourIndex;
     }
 
-    public ArrayList<String> getChatMessages() {
+    public ArrayList<ChatMessage> getChatMessages() {
         return chatMessages;
     }
 
-    public void setChatMessages(ArrayList<String> chatMessages) {
+    public void setChatMessages(ArrayList<ChatMessage> chatMessages) {
         this.chatMessages = chatMessages;
     }
 }

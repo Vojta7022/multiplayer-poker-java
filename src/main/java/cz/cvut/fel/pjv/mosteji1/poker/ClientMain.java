@@ -1,7 +1,7 @@
 
 package cz.cvut.fel.pjv.mosteji1.poker;
 
-import cz.cvut.fel.pjv.mosteji1.poker.client.GameState;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.cvut.fel.pjv.mosteji1.poker.client.graphics.MenuView;
 import cz.cvut.fel.pjv.mosteji1.poker.client.network.ClientEndpoint;
 import cz.cvut.fel.pjv.mosteji1.poker.common.game.GameParameters;
@@ -11,22 +11,42 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
-
+/**
+ * Entry point for the client-side of the poker application using JavaFX.
+ * <p>
+ * This class initializes the user interface, loads graphical resources,
+ * manages connection to the server, and switches between the menu and
+ * game table scenes.
+ *
+ * @see javafx.application.Application
+ * @see cz.cvut.fel.pjv.mosteji1.poker.client.network.ClientEndpoint
+ */
 public class ClientMain extends Application {
 
-    private GameState gameState = GameState.MENU;
+    // JavaFX application entry point
     private Stage primaryStage;
+    /** List of card sprites used in the game. */
     public static final List<Image> sprites = new ArrayList<>();
+    /** List of avatar images used in the game. */
     public static final List<Image> avatars = new ArrayList<>();
+    // Client endpoint for network communication
     private ClientEndpoint myEndpoint;
+    // User data
     private int avatarIndex;
     private String name;
 
+    /**
+     * Initializes the JavaFX application and displays the menu.
+     *
+     * @param stage The primary stage for this application.
+     */
     @Override
     public void start(Stage stage) {
         this.primaryStage = stage;
@@ -34,6 +54,7 @@ public class ClientMain extends Application {
         showMenuScene();
     }
 
+    // Initializes the graphical resources (sprites and avatars) used in the game.
     private void graphicsInitialize() {
         // Cards
         for (int i = 0; i < GameParameters.CARD_COUNT; i++) {
@@ -55,6 +76,7 @@ public class ClientMain extends Application {
         }
     }
 
+    // Loads the menu scene for the user to connect to the server.
     private void showMenuScene() {
 
         MenuView menuView = new MenuView();
@@ -65,11 +87,11 @@ public class ClientMain extends Application {
             name = MenuView.playerNameField.getText();
             avatarIndex = MenuView.avatarComboBox.getSelectionModel().getSelectedIndex();
 
-            // TODO: Zkusit navázat spojení
+            saveGameData(ip, portStr, name, avatarIndex);
+
             boolean connected = tryConnect(ip, portStr);
 
             if (connected) {
-                gameState = GameState.PLAYING;
                 showTableScene();
             } else {
                 MenuView.statusLabel.setText("Could not connect.");
@@ -84,6 +106,7 @@ public class ClientMain extends Application {
         primaryStage.setResizable(false);
     }
 
+    // Displays the poker table scene after a successful connection.
     private void showTableScene() {
         PokerTableView tableView = new PokerTableView(this.myEndpoint);
         myEndpoint.setPokerTableView(tableView);
@@ -94,14 +117,21 @@ public class ClientMain extends Application {
         primaryStage.setMaximized(true);
     }
 
+    // Attempts to connect to the server using the provided IP and port.
     private boolean tryConnect(String ip, String portStr) {
-        // TODO: Reálná logika připojení přes socket
         try {
-            myEndpoint = new ClientEndpoint(ip, Integer.parseInt(portStr), name, avatarIndex);
+            int port = Integer.parseInt(portStr);
+            myEndpoint = new ClientEndpoint(ip, port, name, avatarIndex);
             myEndpoint.start();
-            System.out.println("Connecting to IP: " + ip + ", port: " + portStr);
 
-            return true;
+            // Check if the connection is established
+            if (myEndpoint.isConnected()) {
+                System.out.println("Successfully connected to IP: " + ip + ", port: " + portStr);
+                return true;
+            } else {
+                System.err.println("Failed to connect to IP: " + ip + ", port: " + portStr);
+                return false;
+            }
         } catch (NumberFormatException e) {
             MenuView.statusLabel.setText("Invalid port number.");
             System.err.println("Invalid port number: " + portStr);
@@ -113,6 +143,33 @@ public class ClientMain extends Application {
         }
     }
 
+    // Saves the game data (IP, port, player name, and avatar index) to a JSON file.
+    private void saveGameData(String ip, String port, String playerName, int avatarIndex) {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        String resourcePath = "src/main/resources/game_data.json";
+        File file = new File(resourcePath);
+
+        try {
+            Map<String, String> data = Map.of(
+                    "ip", ip,
+                    "port", port,
+                    "playerName", playerName,
+                    "avatarIndex", String.valueOf(avatarIndex)
+            );
+
+            objectMapper.writeValue(file, data);
+            System.out.println("Game data saved successfully.");
+        } catch (IOException e) {
+            System.err.println("Error saving game data: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Main method that launches the JavaFX application.
+     *
+     * @param args Command-line arguments.
+     */
     public static void main(String[] args) {
         launch(args);
     }
