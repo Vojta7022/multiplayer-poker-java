@@ -86,7 +86,6 @@ public class PokerTableView extends BorderPane {
         allInButton = new Button("All In!");
 
         Button cancelRaiseButton = new Button("Cancel Raise");
-        cancelRaiseButton.setVisible(false);
         cancelRaiseButton.getStyleClass().add("fancy-button");
 
         raiseSlider = new Slider(1, maxSliderValue, 50); // low, high, initial value
@@ -127,31 +126,6 @@ public class PokerTableView extends BorderPane {
             clientEndpoint.sendMessage("ALLIN");
         });
 
-        raiseButton.setOnAction(_ -> {
-            if (!raiseMode[0]) {
-                // First click - show slider
-                raiseSlider.setVisible(true);
-                raiseValueLabel.setVisible(true);
-                cancelRaiseButton.setVisible(true);
-                raiseButton.setText("Confirm Raise");
-                raiseMode[0] = true;
-            } else {
-                // Second click - send raise amount
-                int raiseAmount = (int) raiseSlider.getValue();
-                clientEndpoint.sendMessage("RAISE " + raiseAmount);
-                raiseSlider.setVisible(false);
-                raiseValueLabel.setVisible(false);
-                cancelRaiseButton.setVisible(false);
-                raiseButton.setText("Raise");
-                raiseMode[0] = false;
-            }
-        });
-
-        cancelRaiseButton.setOnAction(_ -> {
-            cancelRaiseButton.setVisible(false);
-            hideRaiseSlider();
-        });
-
         foldButton.getStyleClass().add("fancy-button");
         checkButton.getStyleClass().add("fancy-button");
         raiseButton.getStyleClass().add("fancy-button");
@@ -160,8 +134,33 @@ public class PokerTableView extends BorderPane {
         raiseSlider.getStyleClass().add("raise-slider");
         raiseValueLabel.getStyleClass().add("raise-label");
 
-        HBox actionButtons = new HBox(20, foldButton, checkButton, callButton, raiseButton, allInButton, cancelRaiseButton);
+        HBox actionButtons = new HBox(20, foldButton, checkButton, callButton, raiseButton, allInButton);
         actionButtons.setAlignment(Pos.CENTER);
+
+        raiseButton.setOnAction(_ -> {
+            if (!raiseMode[0]) {
+                // First click - show slider
+                raiseSlider.setVisible(true);
+                raiseValueLabel.setVisible(true);
+                actionButtons.getChildren().add(cancelRaiseButton);
+                raiseButton.setText("Confirm Raise");
+                raiseMode[0] = true;
+            } else {
+                // Second click - send raise amount
+                int raiseAmount = (int) raiseSlider.getValue();
+                clientEndpoint.sendMessage("RAISE " + raiseAmount);
+                raiseSlider.setVisible(false);
+                raiseValueLabel.setVisible(false);
+                actionButtons.getChildren().remove(cancelRaiseButton);
+                raiseButton.setText("Raise");
+                raiseMode[0] = false;
+            }
+        });
+
+        cancelRaiseButton.setOnAction(_ -> {
+            actionButtons.getChildren().remove(cancelRaiseButton);
+            hideRaiseSlider();
+        });
 
         playerCards = new HBox(10,
                 createCardPlaceholder(false),
@@ -203,6 +202,10 @@ public class PokerTableView extends BorderPane {
         chatBox.setPadding(new Insets(10));
         chatBox.getStyleClass().add("chat-box");
         chatBox.setPrefWidth(250);
+
+        Region rightSpacer = new Region();
+        rightSpacer.setPrefWidth(chatBox.getPrefWidth());
+        setRight(rightSpacer);
 
         chatArea = new TextFlow();
         chatArea.getStyleClass().add("chat-area");

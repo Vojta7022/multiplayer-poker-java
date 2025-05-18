@@ -40,7 +40,6 @@ public class Server {
      */
     public Server() {
         table = new Table(this, commandQueue);
-        startServer();
     }
 
     /**
@@ -138,6 +137,8 @@ public class Server {
                 String name = serverEndpoint.getName();
                 while (takenNames.contains(name)) {
                     serverEndpoint.setName(name + "2");
+                    System.out.println("Name already taken, changing to " + name + "2");
+                    name = serverEndpoint.getName();
                 }
                 takenNames.add(name);
             }
@@ -150,7 +151,6 @@ public class Server {
             return;
         }
 
-
         // Send initial table representation to all players
         sendUpdatesToAllPlayers();
 
@@ -159,6 +159,8 @@ public class Server {
             try {
                 while (!table.isGameWon()) {
                     table.startRound();
+
+                    // Wait 5 seconds before the next round
                     Thread.sleep(5*1000);
                 }
             } catch (InterruptedException e) {

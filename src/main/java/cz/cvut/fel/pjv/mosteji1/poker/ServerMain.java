@@ -41,6 +41,7 @@ public class ServerMain {
             MyUtils.initializeLogger(args);
         }
 
-        new Server();
+        Server server = new Server();
+        server.startServer();
     }
 }

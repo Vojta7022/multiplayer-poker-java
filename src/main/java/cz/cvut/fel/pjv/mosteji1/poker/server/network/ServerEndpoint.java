@@ -5,7 +5,6 @@ import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
 import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
 
 import java.io.*;
-import java.lang.reflect.Field;
 import java.net.Socket;
 import java.util.logging.Logger;
 

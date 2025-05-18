@@ -194,12 +194,4 @@ public class Player {
     public void setEndpoint(ServerEndpoint serverEndpoint) {
         this.endpoint = serverEndpoint;
     }
-
-    public String getSocket() {
-        if (endpoint != null) {
-            return endpoint.getSocket().toString();
-        } else {
-            return "null";
-        }
-    }
 }

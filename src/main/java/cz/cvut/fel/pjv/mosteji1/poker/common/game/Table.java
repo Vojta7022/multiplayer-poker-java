@@ -75,9 +75,6 @@ public class Table {
         waitingForIndex = (dealerIndex + 3) % players.size();
         parent.sendUpdatesToAllPlayers();
 
-        letPlayersBet((dealerIndex + 3) % players.size());        // start from player to the left of big blind
-
-
         for (Player player : players) {
             if (player.getChips() == 0) {
                 player.disconnect();
@@ -86,6 +83,8 @@ public class Table {
                 appendMessageToChat(message, true);
             }
         }
+
+        letPlayersBet((dealerIndex + 3) % players.size());        // start from player to the left of big blind
 
         if (numberOfActivePlayers() > 1) {
             dealFlop();
@@ -117,7 +116,6 @@ public class Table {
         deck = new Deck();
         potSize = 0;
         betThreshold = 0;
-        dealerIndex = 0;
 
         for (Player player : players) {
             player.discardCards();
@@ -125,8 +123,6 @@ public class Table {
             player.setAllIn(false);
             player.setFolded(false);
         }
-
-        waitingForIndex = (dealerIndex + 1) % players.size();
 
         parent.sendUpdatesToAllPlayers();
     }
@@ -182,7 +178,8 @@ public class Table {
         return runningWinners;
     }
 
-    private void dividePot(List<Player> winners) {      // TODO: makeshift function for now
+    // Divides the pot among the winners based on their bets.
+    private void dividePot(List<Player> winners) {
         int sumWinnerBets = 0;
         if (winners == null) {
             logger.fine("No winners, no one wins anything.");
@@ -202,6 +199,9 @@ public class Table {
 
             winner.setChips(winner.getChips() + chipsPerWinner);
             String message = winner.getName() + " wins " + chipsPerWinner + " chips.";
+            appendMessageToChat(message, true);
+            logger.fine(message);
+            message = "Waiting 5 seconds before starting a new round.";
             appendMessageToChat(message, true);
             logger.fine(message);
         }
@@ -490,6 +490,15 @@ public class Table {
             serverEndpoint.setPlayerPTR(player);
             players.add(player);
         }
+    }
+
+    /**
+     * Adds players to the table, used for testing purposes.
+     *
+     * @param players List of players to add.
+     */
+    public void addPlayersFromPointers(List<Player> players) {
+        this.players.addAll(players);
     }
 
     /**
