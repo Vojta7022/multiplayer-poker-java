@@ -6,6 +6,7 @@ import cz.cvut.fel.pjv.mosteji1.poker.client.graphics.MenuView;
 import cz.cvut.fel.pjv.mosteji1.poker.client.network.ClientEndpoint;
 import cz.cvut.fel.pjv.mosteji1.poker.common.game.GameParameters;
 import cz.cvut.fel.pjv.mosteji1.poker.client.graphics.PokerTableView;
+import cz.cvut.fel.pjv.mosteji1.poker.utils.MyUtils;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.*;
 
 /**
  * Entry point for the client-side of the poker application using JavaFX.
@@ -29,6 +31,8 @@ import java.util.Objects;
  * @see cz.cvut.fel.pjv.mosteji1.poker.client.network.ClientEndpoint
  */
 public class ClientMain extends Application {
+
+    private static final Logger logger = Logger.getLogger(ClientMain.class.getName());
 
     // JavaFX application entry point
     private Stage primaryStage;
@@ -109,7 +113,6 @@ public class ClientMain extends Application {
     // Displays the poker table scene after a successful connection.
     private void showTableScene() {
         PokerTableView tableView = new PokerTableView(this.myEndpoint);
-        myEndpoint.setPokerTableView(tableView);
         Scene tableScene = new Scene(tableView);
         tableScene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/style.css")).toExternalForm());
         primaryStage.setScene(tableScene);
@@ -126,19 +129,19 @@ public class ClientMain extends Application {
 
             // Check if the connection is established
             if (myEndpoint.isConnected()) {
-                System.out.println("Successfully connected to IP: " + ip + ", port: " + portStr);
+                logger.info("Successfully connected to IP: " + ip + ", port: " + portStr);
                 return true;
             } else {
-                System.err.println("Failed to connect to IP: " + ip + ", port: " + portStr);
+               logger.severe("Failed to connect to IP: " + ip + ", port: " + portStr);
                 return false;
             }
         } catch (NumberFormatException e) {
             MenuView.statusLabel.setText("Invalid port number.");
-            System.err.println("Invalid port number: " + portStr);
+            logger.severe("Invalid port number: " + portStr);
             return false;
         } catch (IOException e) {
             MenuView.statusLabel.setText("Could not connect to server.");
-            System.err.println("Error connecting to the server: " + e.getMessage());
+            logger.severe("Error connecting to the server: " + e.getMessage());
             return false;
         }
     }
@@ -159,9 +162,9 @@ public class ClientMain extends Application {
             );
 
             objectMapper.writeValue(file, data);
-            System.out.println("Game data saved successfully.");
+            logger.info("Game data saved successfully.");
         } catch (IOException e) {
-            System.err.println("Error saving game data: " + e.getMessage());
+            logger.severe("Error saving game data: " + e.getMessage());
         }
     }
 
@@ -171,6 +174,9 @@ public class ClientMain extends Application {
      * @param args Command-line arguments.
      */
     public static void main(String[] args) {
+
+        MyUtils.initializeLogger(args);
+
         launch(args);
     }
 }

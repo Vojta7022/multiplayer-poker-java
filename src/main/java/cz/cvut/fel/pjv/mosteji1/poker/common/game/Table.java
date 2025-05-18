@@ -5,17 +5,23 @@ import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Deck;
 import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
 import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
+import cz.cvut.fel.pjv.mosteji1.poker.server.network.ChatMessage;
 import cz.cvut.fel.pjv.mosteji1.poker.server.network.ServerEndpoint;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.Logger;
 
 /**
  * Represents a table in a poker game. Manages the game flow,
  * community cards, betting rounds, and determines the winner.
  */
 public class Table {
+
+    private static final Logger logger = Logger.getLogger(Table.class.getName());
+
     // Parent server instance
     private final Server parent;
     // List of players at the table
@@ -33,7 +39,7 @@ public class Table {
     // Index of the player waiting for their turn
     private int waitingForIndex = 2;
     // List of chat messages exchanged during the game
-    private final ArrayList<ChatMessage> chatMessages = new ArrayList<>();
+    private final List<ChatMessage> chatMessages = new LinkedList<>();
     // Queue for player commands
     private final BlockingQueue<String> commandQueue;
 
@@ -58,9 +64,61 @@ public class Table {
      */
     public void startRound() throws InterruptedException {
 
+        resetTable();
+
+        dealerIndex = (dealerIndex + 1) % players.size();
+
+        placeBlinds((dealerIndex + 1) % players.size()); // small blind is to the left of the dealer
+        dealHoleCards();
+        logger.fine("Dealing hole cards...");
+
+        waitingForIndex = (dealerIndex + 1) % players.size();
+        parent.sendUpdatesToAllPlayers();
+
+        letPlayersBet((dealerIndex + 3) % players.size());        // start from player to the left of big blind
+
+
+        for (Player player : players) {
+            if (player.getChips() == 0) {
+                player.disconnect();
+                players.remove(player);
+                String message = player.getName() + " has disconnected.";
+                appendMessageToChat(message, true);
+            }
+        }
+
+        if (numberOfActivePlayers() > 1) {
+            dealFlop();
+            logger.fine("Dealing flop...");
+            letPlayersBet((dealerIndex + 1) % players.size());
+        }
+
+        if (numberOfActivePlayers() > 1) {
+            dealTurn();
+            logger.fine("Dealing turn...");
+            letPlayersBet((dealerIndex + 1) % players.size());
+        }
+
+        if (numberOfActivePlayers() > 1) {
+            dealRiver();
+            logger.fine("Dealing river...");
+            letPlayersBet((dealerIndex + 1) % players.size());
+        }
+
+        List<Player> winners = determineWinners();
+        dividePot(winners);
+
+        parent.sendUpdatesToAllPlayers();
+    }
+
+    // Resets the table for a new round, clearing community cards and resetting player states.
+    private void resetTable() {
+        communityCards.clear();
         deck = new Deck();
         potSize = 0;
         betThreshold = 0;
+        waitingForIndex = 0;
+        dealerIndex = 0;
 
         for (Player player : players) {
             player.discardCards();
@@ -69,47 +127,11 @@ public class Table {
             player.setFolded(false);
         }
 
-        dealerIndex = (dealerIndex + 1) % players.size();
-
-        placeBlinds((dealerIndex + 1) % players.size()); // small blind is to the left of the dealer
-        dealHoleCards();
-        System.out.println("Dealing hole cards...");
-
-//        waitingForIndex = (dealerIndex + 1) % players.size();
         parent.sendUpdatesToAllPlayers();
-
-        letPlayersBet((dealerIndex + 3) % players.size());        // start from player to the left of big blind
-
-
-        // TODO: checkni jestli jsou hraci bez chipu a odpoj je
-
-        if (numberOfActivePlayers() > 1) {
-            dealFlop();
-            System.out.println("Dealing flop...");
-            letPlayersBet((dealerIndex + 1) % players.size());
-        }
-
-        if (numberOfActivePlayers() > 1) {
-            dealTurn();
-            System.out.println("Dealing turn...");
-            letPlayersBet((dealerIndex + 1) % players.size());
-        }
-
-        if (numberOfActivePlayers() > 1) {
-            dealRiver();
-            System.out.println("Dealing river...");
-            letPlayersBet((dealerIndex + 1) % players.size());
-        }
-
-        Player winner = determineWinner();
-
-        if (winner != null) {winner.setChips(winner.getChips() + potSize);}
-        potSize = 0;
-
     }
 
     // Determines the winner of the round based on the players' hands and community cards.
-    private Player determineWinner() {                  // TODO: co když je to remíza?
+    private List<Player> determineWinners() {
         List<Player> contenders = new ArrayList<>();
         for (Player player : players) {
             if (!player.hasFolded()) {
@@ -117,131 +139,186 @@ public class Table {
             }
         }
 
-        if (contenders.size() == 1) {
-            System.out.println("Player " + contenders.getFirst().getName() + " wins by default.");
-            String message = contenders.getFirst().getName() + " wins by default.";
-            appendMessageToChat(message, true);
-            return contenders.getFirst();
-        }
         if (contenders.isEmpty()) {
-            System.out.println("WTF why did you all fold?");
+            logger.fine("WTF why did you all fold?");
             return null;
         }
 
-        Player runningWinner = contenders.getFirst();
-        CardCombo runningCombo = new CardCombo(runningWinner.getHand(), communityCards);
+        if (contenders.size() == 1) {
+            String message = contenders.getFirst().getName() + " wins by default.";
+            appendMessageToChat(message, true);
+            logger.fine(message);
+            return contenders;
+        }
+
+        CardCombo runningCombo = new CardCombo(contenders.getFirst().getHand(), communityCards);
+        List<Player> runningWinners = new ArrayList<>();
 
         for (Player contender : contenders) {
             CardCombo contenderCombo = new CardCombo(contender.getHand(), communityCards);
-            if (contenderCombo.compareTo(runningCombo) > 0) {
-                runningWinner = contender;
+
+            if (runningWinners.isEmpty()) {
+                runningWinners.add(contender);
+            } else if (contenderCombo.compareTo(runningCombo) == 0) {
+                runningWinners.add(contender);
+            } else if (contenderCombo.compareTo(runningCombo) > 0) {
+                runningWinners.clear();
+                runningWinners.add(contender);
                 runningCombo = contenderCombo;
             }
         }
 
-        System.out.println("Player " + runningWinner.getName() + " wins with " + runningCombo.getHandRanking());
-        System.out.println("Winning hand: " + runningWinner.getHand() + " and community cards: " + communityCards);
-        String message = runningWinner.getName() + " wins with " + runningCombo.getHandRanking() + " and " + runningWinner.getHand() + " and community cards: " + communityCards;
+        StringBuilder winnersString = new StringBuilder();
+        for (Player winner : runningWinners) {
+            winnersString.append(winner.getName()).append(" ");
+        }
+        String message = winnersString + "win(s) with " + runningCombo.getHandRanking();
+        logger.fine(message);
         appendMessageToChat(message, true);
-        return runningWinner;
+        message = "Chosen winning hand(s): " + runningWinners.getFirst().getHand() + " and community cards: " + communityCards;
+        logger.fine(message);
+        appendMessageToChat(message, true);
+        return runningWinners;
+    }
+
+    private void dividePot(List<Player> winners) {      // TODO: makeshift function for now
+        int sumWinnerBets = 0;
+        if (winners == null) {
+            logger.fine("No winners, no one wins anything.");
+            return;
+        }
+        for (Player winner : winners) {
+            sumWinnerBets += winner.getBet();
+        }
+
+        if (sumWinnerBets == 0) {
+            logger.fine("No one bet anything, no one wins anything. (Also this shouldn't happen)");
+            return;
+        }
+
+        for (Player winner : winners) {
+            int chipsPerWinner = potSize * winner.getBet() / sumWinnerBets;
+
+            winner.setChips(winner.getChips() + chipsPerWinner);
+            String message = winner.getName() + " wins " + chipsPerWinner + " chips.";
+            appendMessageToChat(message, true);
+            logger.fine(message);
+        }
+        potSize = 0;
     }
 
     // Handles the betting process for players in the current round.
     private void letPlayersBet(int bettingStartIndex) throws InterruptedException {
-        String message;
-        while (true) {
-            for (Player player : players) {
-                waitingForIndex = players.indexOf(player);
-                if (!player.hasFolded() && !player.isAllIn()) {
-                    int bet = player.getBet();
-                    if (bet < betThreshold) {
-                        int minimumBet = betThreshold - bet;
-                        System.out.println(player.getName() + ", you need to bet at least " + minimumBet + " chips.");
-                        String action = commandQueue.take();
-                        switch (action) {
-                            case "FOLD" -> {
-                                player.fold();
-                                if (numberOfActivePlayers() == 1) {
-                                    return;
-                                }
-                                message = player.getName() + " has folded.";
-                                appendMessageToChat(message, true);
-                                System.out.println(message);
-                            }
-                            case "CALL" -> {
-                                if (canPlaceBet(minimumBet, player)) {
-                                    message = player.getName() + " has called.";
-                                    appendMessageToChat(message, true);
-                                    System.out.println(message);
-                                    potSize += minimumBet;
-                                } else {
-                                    player.disconnect();
-                                    players.remove(player);
-                                    message = player.getName() + " has disconnected.";
-                                    appendMessageToChat(message, true);
-                                    System.out.println(message);
-                                }
-                            }
-                            case "RAISE" -> {
-                                int amountToRaise = Integer.parseInt(commandQueue.take());
-                                if (canPlaceBet(amountToRaise + minimumBet, player)) {
-                                    message = player.getName() + " has raised to " + (amountToRaise + minimumBet) + ".";
-                                    appendMessageToChat(message, true);
-                                    System.out.println(message);
-                                    betThreshold = player.getBet();
-                                    potSize += amountToRaise;
-                                } else {
-                                    player.disconnect();
-                                    players.remove(player);
-                                    message = player.getName() + " has disconnected.";
-                                    appendMessageToChat(message, true);
-                                    System.out.println(message);
-                                }
-                            }
-                            case "ALLIN" -> goAllIn(player);
-                        }
-                    } else {
-                        System.out.println(player.getName() + ", you can either check or raise.");
-                        String action = commandQueue.take();
-                        switch (action) {
-                            case "CHECK" -> {
-                                message = player.getName() + " has checked.";
-                                appendMessageToChat(message, true);
-                                System.out.println(message);
-                            }
-                            case "RAISE" -> {
-                                int amountToRaise = Integer.parseInt(commandQueue.take());
-                                if (canPlaceBet(amountToRaise, player)) {
-                                    message = player.getName() + " has raised to " + amountToRaise + ".";
-                                    appendMessageToChat(message, true);
-                                    System.out.println(message);
-                                    betThreshold = player.getBet();
-                                    potSize += amountToRaise;
-                                } else {
-                                    player.disconnect();
-                                    players.remove(player);
-                                    message = player.getName() + " has disconnected.";
-                                    appendMessageToChat(message, true);
-                                    System.out.println(message);
-                                }
-                            }
-                            case "FOLD" -> {
-                                player.fold();
-                                if (numberOfActivePlayers() == 1) {
-                                    break;
-                                }
-                                message = player.getName() + " has folded.";
-                                appendMessageToChat(message, true);
-                                System.out.println(message);
-                            }
-                            case "ALLIN" -> goAllIn(player);
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get((bettingStartIndex + i) % players.size());
+            if (numberOfActivePlayers() > 1) letPlayerBet(player);
+        }
+        for (int i = 0; !canGoToNextRound(); i++) {
+            Player player = players.get((bettingStartIndex + i) % players.size());
+            if (numberOfActivePlayers() > 1) letPlayerBet(player);
+        }
+    }
 
+    private void letPlayerBet(Player player) throws InterruptedException {
+        waitingForIndex = players.indexOf(player);
+        String message;
+        if (!player.hasFolded() && !player.isAllIn()) {
+            int bet = player.getBet();
+            if (bet < betThreshold) {
+                int minimumBet = betThreshold - bet;
+                logger.fine(player.getName() + ", you need to bet at least " + minimumBet + " chips.");
+                String action = commandQueue.take();
+                switch (action) {
+                    case "FOLD" -> {
+                        player.fold();
+                        if (numberOfActivePlayers() == 1) {
+                            return;
+                        }
+                        message = player.getName() + " has folded.";
+                        appendMessageToChat(message, true);
+                        logger.fine(message);
+                    }
+                    case "CALL" -> {
+                        if (canPlaceBet(minimumBet, player)) {
+                            message = player.getName() + " has called.";
+                            appendMessageToChat(message, true);
+                            logger.fine(message);
+                            potSize += minimumBet;
+                        } else {
+                            player.disconnect();
+                            players.remove(player);
+                            message = player.getName() + " has disconnected.";
+                            appendMessageToChat(message, true);
+                            logger.fine(message);
                         }
                     }
+                    case "RAISE" -> {
+                        int amountToRaise = Integer.parseInt(commandQueue.take());
+                        if (canPlaceBet(amountToRaise + minimumBet, player)) {
+                            message = player.getName() + " has raised by " + amountToRaise + ".";
+                            appendMessageToChat(message, true);
+                            logger.fine(message);
+                            betThreshold = player.getBet();
+                            potSize += (amountToRaise + minimumBet);
+                        } else {
+                            player.disconnect();
+                            players.remove(player);
+                            message = player.getName() + " has disconnected.";
+                            appendMessageToChat(message, true);
+                            logger.fine(message);
+                        }
+                    }
+                    case "ALLIN" -> goAllIn(player);
+                }
+            } else {
+                logger.fine(player.getName() + ", you can either check or raise.");
+                String action = commandQueue.take();
+                switch (action) {
+                    case "CHECK" -> {
+                        message = player.getName() + " has checked.";
+                        appendMessageToChat(message, true);
+                        logger.fine(message);
+                    }
+                    case "RAISE" -> {
+                        int amountToRaise = Integer.parseInt(commandQueue.take());
+                        if (canPlaceBet(amountToRaise, player)) {
+                            message = player.getName() + " has raised by " + amountToRaise + ".";
+                            appendMessageToChat(message, true);
+                            logger.fine(message);
+                            betThreshold = player.getBet();
+                            potSize += amountToRaise;
+                        } else {
+                            player.disconnect();
+                            players.remove(player);
+                            message = player.getName() + " has disconnected.";
+                            appendMessageToChat(message, true);
+                            logger.fine(message);
+                        }
+                    }
+                    case "FOLD" -> {
+                        player.fold();
+                        if (numberOfActivePlayers() == 1) {
+                            return;
+                        }
+                        message = player.getName() + " has folded.";
+                        appendMessageToChat(message, true);
+                        logger.fine(message);
+                    }
+                    case "ALLIN" -> goAllIn(player);
+
                 }
             }
-            System.out.println("Bet threshold: " + betThreshold);
         }
+        logger.fine("Bet threshold: " + betThreshold);
+    }
+
+    private boolean canGoToNextRound() {
+        for (Player player : players) {
+            if (!(player.hasFolded() || player.isAllIn() || player.getBet() == betThreshold)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // Handles the all-in action for a player.
@@ -252,7 +329,7 @@ public class Table {
         player.setChips(0);
         String message = player.getName() + " has gone all-in.";
         appendMessageToChat(message, true);
-        System.out.println(message);
+        logger.fine(message);
     }
 
     // Returns the number of active players at the table.
@@ -271,30 +348,31 @@ public class Table {
         String message;
         if (players.size() < 2) return;
 
-        if (!canPlaceBet(GameParameters.SMALL_BLIND, players.get(smallBlindIndex))) {
-            players.get(smallBlindIndex).disconnect();
-            players.remove(smallBlindIndex);
+        Player smallBlindPlayer = players.get(smallBlindIndex);
+        Player bigBlindPlayer = players.get((smallBlindIndex + 1) % players.size());
+
+        if (!canPlaceBet(GameParameters.SMALL_BLIND, smallBlindPlayer)) {
+            smallBlindPlayer.disconnect();
             message = players.get(smallBlindIndex).getName() + " has disconnected.";
-        } else {
-            message = players.get(smallBlindIndex).getName() + " posts small blind: " + GameParameters.SMALL_BLIND;
-        }
-        appendMessageToChat(message, true);
-        System.out.println(message);
-
-        if (!canPlaceBet(GameParameters.BIG_BLIND, players.get((smallBlindIndex + 1) % players.size()))) {
-            players.get(smallBlindIndex).disconnect();
             players.remove(smallBlindIndex);
-            message = players.get((smallBlindIndex + 1) % players.size()).getName() + " has disconnected.";
         } else {
-            message = players.get((smallBlindIndex + 1) % players.size()).getName() + " posts big blind: " + GameParameters.BIG_BLIND;
+            message = smallBlindPlayer.getName() + " posts small blind: " + GameParameters.SMALL_BLIND;
         }
         appendMessageToChat(message, true);
-        System.out.println(message);
+        logger.fine(message);
 
+        if (!canPlaceBet(GameParameters.BIG_BLIND, bigBlindPlayer)) {
+            bigBlindPlayer.disconnect();
+            message = bigBlindPlayer.getName() + " has disconnected.";
+            players.remove((smallBlindIndex + 1) % players.size());
+        } else {
+            message = bigBlindPlayer.getName() + " posts big blind: " + GameParameters.BIG_BLIND;
+        }
+        appendMessageToChat(message, true);
+        logger.fine(message);
 
         potSize = GameParameters.SMALL_BLIND + GameParameters.BIG_BLIND;
         betThreshold = GameParameters.BIG_BLIND;
-
     }
 
     // Deals hole cards to each player at the table.
@@ -302,7 +380,7 @@ public class Table {
         for (Player player : players) {
             player.receiveCard(deck.dealCard());
             player.receiveCard(deck.dealCard());
-            System.out.println(player.getName() + " receives " + player.getHand().get(0) + " and " + player.getHand().get(1));
+            logger.fine(player.getName() + " receives " + player.getHand().get(0) + " and " + player.getHand().get(1));
         }
     }
 
@@ -332,15 +410,15 @@ public class Table {
         return Math.max(betPerPlayer - player.getBet(), 0);
     }
 
-    // Checks if a player can place a bet of a given amount.
+    // Checks if a player can place a bet of a given amount and if they can, immediately places it.
     private boolean canPlaceBet(int amount, Player player) {
         if (amount <= player.getChips() && amount >= minimumValidBet(player)) {
             player.setBet(amount + player.getBet());
             player.setChips(player.getChips() - amount);
-            System.out.println(player.getName() + " bets " + amount + " chips.");
+            logger.fine(player.getName() + " bets " + amount + " chips.");
             return true;
         } else {
-            System.out.println(player.getName() + " does not have enough chips!");
+            logger.fine(player.getName() + " does not have enough chips!");
             return false;
         }
     }
@@ -408,6 +486,7 @@ public class Table {
         for (ServerEndpoint serverEndpoint : serverEndpoints) {
             Player player = new Player(serverEndpoint.getName(),serverEndpoint.getAvatarIndex(), GameParameters.STARTING_CHIPS);
             player.setEndpoint(serverEndpoint);
+            serverEndpoint.setPlayerPTR(player);
             players.add(player);
         }
     }
@@ -436,22 +515,7 @@ public class Table {
      *
      * @return List of chat messages.
      */
-    public ArrayList<ChatMessage> getChatMessages() {
+    public List<ChatMessage> getChatMessages() {
         return chatMessages;
-    }
-
-    /**
-     * Returns the player with the specified name.
-     *
-     * @param name The name of the player to find.
-     * @return The player with the specified name, or null if not found.
-     */
-    public Player getPlayerByName(String name) {
-        for (Player player : players) {
-            if (player.getName().equals(name)) {
-                return player;
-            }
-        }
-        return null;
     }
 }

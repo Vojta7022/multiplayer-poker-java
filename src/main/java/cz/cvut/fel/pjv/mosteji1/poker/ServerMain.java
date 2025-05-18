@@ -1,6 +1,7 @@
 package cz.cvut.fel.pjv.mosteji1.poker;
 
 import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
+import cz.cvut.fel.pjv.mosteji1.poker.utils.MyUtils;
 
 /*
  To allow external clients to connect to the server on port 12345,
@@ -36,6 +37,10 @@ public class ServerMain {
      * @param args command line arguments
      */
     public static void main(String[] args) {
+        if (args.length > 0 && args[0].equals("--debug")) {
+            MyUtils.initializeLogger(args);
+        }
+
         new Server();
     }
 }

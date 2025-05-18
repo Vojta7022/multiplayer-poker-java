@@ -1,28 +1,52 @@
 package cz.cvut.fel.pjv.mosteji1.poker.common.cards;
 
+import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a combination of cards in poker.
+ * This class evaluates the hand ranking based on the given cards.
+ * It implements Comparable to allow for easy comparison of different card combinations.
+ */
 public class CardCombo implements Comparable<CardCombo> {
 
-
+    // Array to hold the cards in the combination
     private final Card[] cards;
+    // Arrays to count the number of ranks and suits
     private final int[] numberOfRanks = new int[Rank.values().length];
     private final int[] numberOfSuits = new int[Suit.values().length];
+
     private final boolean[][] containsSuitRank = new boolean[Suit.values().length][Rank.values().length];
+    // Ranking of the combination
     private HandRanking handRanking;
+    // Array to hold the kickers (additional cards used for tie-breaking)
     private final int[] kickers = new int[5];
 
+    /**
+     * Constructor to create a CardCombo from two lists of cards.
+     * The first list is the player's hand, and the second list is the community cards.
+     *
+     * @param cards1 List of cards representing the player's hand.
+     * @param cards2 List of cards representing the community cards.
+     */
     public CardCombo(List<Card> cards1, List<Card> cards2) {
-        cards1.addAll(cards2);
+        List<Card> combined = new ArrayList<>(cards1);
+        combined.addAll(cards2);
 
-        this.cards = cards1.toArray(new Card[7]);
+        this.cards = combined.toArray(new Card[7]);
         assert this.cards.length == 7;
+
+
 
         initializeRankArrays();
         determineHandRanking();
     }
 
-
+    /**
+     * Compares this CardCombo with another CardCombo.
+     * @param other the object to be compared.
+     * @return a negative integer, zero, or a positive integer as this CardCombo is less than, equal to, or greater than the specified object.
+     */
     @Override
     public int compareTo(CardCombo other) {
         HandRanking otherHandRanking = other.getHandRanking();
@@ -40,14 +64,25 @@ public class CardCombo implements Comparable<CardCombo> {
         return 0;
     }
 
+    /**
+     * Returns the hand ranking of this CardCombo.
+     *
+     * @return the hand ranking
+     */
     public HandRanking getHandRanking() {
         return handRanking;
     }
 
+    /**
+     * Returns the kickers in this CardCombo.
+     *
+     * @return the kickers
+     */
     public int[] getKickers() {
         return kickers;
     }
 
+    // Initializes the rank and suit arrays based on the cards in this CardCombo.
     private void initializeRankArrays() {
         for (Card card : cards) {
             Rank myRank = card.rank();
@@ -60,6 +95,7 @@ public class CardCombo implements Comparable<CardCombo> {
 
     /* EACH AND EVERY POSSIBLE POKER HAND EVALUATION */
 
+    // Determines the hand ranking based on the cards in this CardCombo.
     private void determineHandRanking() {
         if (containsRoyalFlush()) {handRanking = HandRanking.ROYAL_FLUSH; return;}
         if (containsStraightFlush()) {handRanking = HandRanking.STRAIGHT_FLUSH; return;}
@@ -75,6 +111,7 @@ public class CardCombo implements Comparable<CardCombo> {
         handRanking = HandRanking.HIGH_CARD;
     }
 
+    // Checks if the combination contains a Royal Flush.
     private boolean containsRoyalFlush() {
         for (Suit suit : Suit.values()) {
             boolean hasAll = true;
@@ -91,6 +128,7 @@ public class CardCombo implements Comparable<CardCombo> {
         return false;
     }
 
+    // Checks if the combination contains a Straight Flush.
     private boolean containsStraightFlush() {
         for (Suit suit : Suit.values()) {
             for (int rank = Rank.KING.ordinal() /* we know there's no royal flush */; Rank.SIX.ordinal() <= rank; rank--) {
@@ -121,6 +159,7 @@ public class CardCombo implements Comparable<CardCombo> {
         return false;
     }
 
+    // Checks if the combination contains Four of a Kind.
     private boolean containsFourOfAKind() {
         for (int rank = Rank.ACE.ordinal() ; rank >= Rank.TWO.ordinal() ; rank--) {
             if (numberOfRanks[rank] == 4) {
@@ -137,6 +176,7 @@ public class CardCombo implements Comparable<CardCombo> {
         return false;
     }
 
+    // Checks if the combination contains a Full House.
     private boolean containsFullHouse() {
         int threeOfAKind = -1;
         int pair = -1;
@@ -162,7 +202,9 @@ public class CardCombo implements Comparable<CardCombo> {
         return true;
     }
 
+    // Checks if the combination contains a Flush.
     private boolean containsFlush() {
+
         for (Suit suit : Suit.values()) {
             if (numberOfSuits[suit.ordinal()] >= 5) {
                 int kickerIndex = 0;
@@ -180,6 +222,7 @@ public class CardCombo implements Comparable<CardCombo> {
         return false;
     }
 
+    // Checks if the combination contains a Straight.
     private boolean containsStraight() {
         for (int rank = Rank.ACE.ordinal(); Rank.SIX.ordinal() <= rank; rank--) {
             boolean hasAll = true;
@@ -208,6 +251,7 @@ public class CardCombo implements Comparable<CardCombo> {
         return false;
     }
 
+    // Checks if the combination contains Three of a Kind.
     private boolean containsThreeOfAKind() {
         for (int rank = Rank.ACE.ordinal() ; rank >= Rank.TWO.ordinal() ; rank--) {
             if (numberOfRanks[rank] == 3) {
@@ -227,6 +271,7 @@ public class CardCombo implements Comparable<CardCombo> {
         return false;
     }
 
+    // Checks if the combination contains Two Pairs.
     private boolean containsTwoPairs() {
         int pair1 = -1;
         int pair2 = -1;
@@ -259,6 +304,7 @@ public class CardCombo implements Comparable<CardCombo> {
         return true;
     }
 
+    // Checks if the combination contains a Pair.
     private boolean containsPair() {
         int pair = -1;
         for (int rank = Rank.ACE.ordinal() ; rank >= Rank.TWO.ordinal() ; rank--) {
@@ -283,6 +329,7 @@ public class CardCombo implements Comparable<CardCombo> {
         return true;
     }
 
+    // Sets the kickers for a High Card hand.
     private void setHighCard() {
         int kickerIndex = 0;
         for (int kicker = Rank.ACE.ordinal() ; kicker >= Rank.TWO.ordinal() ; kicker--) {

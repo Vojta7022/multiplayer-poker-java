@@ -1,4 +1,4 @@
-package cz.cvut.fel.pjv.mosteji1.poker.common.game;
+package cz.cvut.fel.pjv.mosteji1.poker.server.network;
 
 import java.io.Serializable;
 

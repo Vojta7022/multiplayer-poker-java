@@ -5,7 +5,7 @@ import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.PlayerRepresenta
 import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.TableRepresentation;
 import cz.cvut.fel.pjv.mosteji1.poker.client.network.ClientEndpoint;
 import cz.cvut.fel.pjv.mosteji1.poker.common.cards.Card;
-import cz.cvut.fel.pjv.mosteji1.poker.common.game.ChatMessage;
+import cz.cvut.fel.pjv.mosteji1.poker.server.network.ChatMessage;
 import cz.cvut.fel.pjv.mosteji1.poker.common.game.GameParameters;
 import cz.cvut.fel.pjv.mosteji1.poker.utils.MyUtils;
 import javafx.application.Platform;
@@ -22,35 +22,47 @@ import javafx.scene.text.Text;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.List;
+import java.util.logging.Logger;
 
 import static cz.cvut.fel.pjv.mosteji1.poker.utils.MyUtils.getSpriteIndex;
 
+/**
+ * Represents the poker table view in the client application.
+ * <p>
+ * This class is responsible for displaying the poker table, including player avatars,
+ * community cards, action buttons, and chat functionality.
+ * </p>
+ */
 public class PokerTableView extends BorderPane {
 
-    // TODO: tlacitka zmizi/ jsou vysedla podle toho, jestli jses na tahu
-    // TODO: raise slider
-    // TODO: chat spravit
-    // TODO: check/call podle toho jestli musis dorovnavat
+    private static final Logger logger = Logger.getLogger(PokerTableView.class.getName());
 
-    // TODO: jak funguje remíza / když je někdo all in
-    //
-
+    // Components of the poker table view
     private final HBox playersPane;
     private final HBox communityCards;
     private final HBox playerCards;
     private final Label potSizeBox;
     public final TextFlow chatArea;
     public final TextField chatInput;
-    private int low, high;
 
+    // Action buttons
     private final Button foldButton;
     private final Button checkButton;
     private final Button callButton;
     private final Button raiseButton;
     private final Button allInButton;
 
+    // Raise slider for increasing the bet
+    private final Slider raiseSlider;
+    private int maxSliderValue;
 
-
+    /**
+     * Constructs the PokerTableView and initializes all graphical components.
+     * Sets up layout, styles, and event handlers for action buttons.
+     * Also spawns a thread to continuously receive updates from the server.
+     *
+     * @param clientEndpoint The network client used for communication with the server.
+     */
     public PokerTableView(ClientEndpoint clientEndpoint) {
 
         BackgroundImage bg = new BackgroundImage(
@@ -72,10 +84,9 @@ public class PokerTableView extends BorderPane {
         allInButton = new Button("All In!");
 
         final boolean[] raiseMode = {false};
-        low = 1;
-        high = GameParameters.STARTING_CHIPS;
+        maxSliderValue = GameParameters.STARTING_CHIPS;
 
-        Slider raiseSlider = new Slider(low, high, 50); // low, high, initial value
+        raiseSlider = new Slider(0, maxSliderValue, 50); // low, high, initial value
         raiseSlider.setShowTickLabels(true);
         raiseSlider.setShowTickMarks(true);
         raiseSlider.setMajorTickUnit(100);
@@ -196,23 +207,22 @@ public class PokerTableView extends BorderPane {
                 while (!clientEndpoint.isClosed()) {
                     try {
                         TableRepresentation tr = (TableRepresentation) in.readObject();
-                        System.out.println("Received table representation from server");
-                        System.out.println(tr);
-                        System.out.println("Your hand before update: " + tr.getMyHand());
+                        logger.info("Received table representation from server");
                         Platform.runLater(() -> updateView(tr));
                     } catch (IOException | ClassNotFoundException e) {
-                        e.printStackTrace();
+                        logger.severe("Error reading table representation from server: " + e.getMessage());
                         break;
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.severe("Error reading table representation from server: " + e.getMessage());
             }
         });
 
         acceptUpdates.start();
     }
 
+    // Sends a chat message to the server
     private void sendChatMessage(ClientEndpoint clientEndpoint) {
         String message = chatInput.getText();
         if (!message.isEmpty()) {
@@ -222,6 +232,7 @@ public class PokerTableView extends BorderPane {
         chatInput.clear();
     }
 
+    // Creates a placeholder for a card image
     private VBox createCardPlaceholder() {
         VBox box = new VBox();
         ImageView card = new ImageView(ClientMain.sprites.get(getSpriteIndex(MyUtils.Sprites.CARD_PLACEHOLDER)));
@@ -232,6 +243,13 @@ public class PokerTableView extends BorderPane {
         return box;
     }
 
+    /**
+     * Updates the entire view based on the latest table state received from the server.
+     * This includes player boxes, community cards, player cards, pot size, chat messages,
+     * and enabling/disabling buttons according to the player's turn and available chips.
+     *
+     * @param tableRepresentation The current game state.
+     */
     public void updateView(TableRepresentation tableRepresentation) {
         playersPane.getChildren().clear();
 
@@ -246,14 +264,14 @@ public class PokerTableView extends BorderPane {
             avatarView.setFitHeight(60);
             avatarView.setClip(new Circle(30, 30, 30));
 
-            Label name = new Label(tableRepresentation.getPlayers().indexOf(playerRepresentation)
-                    == tableRepresentation.getWaitingForIndex() ?
-                    playerRepresentation.name() + "'s turn" :
-                    (tableRepresentation.getPlayers().indexOf(playerRepresentation) == tableRepresentation.getDealerIndex() ?
-                            playerRepresentation.name() + " (Dealer)" :
-                            playerRepresentation.name())
+            String labelText = playerRepresentation.name();
+            if (tableRepresentation.getWaitingForIndex() == tableRepresentation.getPlayers().indexOf(playerRepresentation)) {
+                labelText += "'s turn";
+            } else if (tableRepresentation.getDealerIndex() == tableRepresentation.getPlayers().indexOf(playerRepresentation)) {
+                labelText += " (Dealer)";
+            }
 
-            );
+            Label name = new Label(labelText);
 
             name.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
             if (tableRepresentation.getYourIndex() == tableRepresentation.getPlayers().indexOf(playerRepresentation)) {
@@ -285,7 +303,6 @@ public class PokerTableView extends BorderPane {
 
         communityCards.getChildren().clear();
 
-        System.out.println("community cards: " + tableRepresentation.getCommunityCards());
         for (int i = 0; i < tableRepresentation.getCommunityCards().size(); i++) {
             ImageView card = new ImageView(ClientMain.sprites.get(getSpriteIndex(tableRepresentation.getCommunityCards().get(i))));
             card.setFitWidth(100);
@@ -293,10 +310,13 @@ public class PokerTableView extends BorderPane {
 
             communityCards.getChildren().add(card);
         }
+        // Add placeholders for remaining community cards
+        for (int i = tableRepresentation.getCommunityCards().size(); i < 5; i++) {
+            communityCards.getChildren().add(createCardPlaceholder());
+        }
 
         playerCards.getChildren().clear();
 
-        System.out.println("my hand: " + tableRepresentation.getMyHand());
         for (Card card : tableRepresentation.getMyHand()) {
             ImageView cardView = new ImageView(ClientMain.sprites.get(getSpriteIndex(card)));
             cardView.setFitWidth(100);
@@ -311,21 +331,24 @@ public class PokerTableView extends BorderPane {
         updateChatArea(tableRepresentation.getChatMessages());
 
         // Slider values
-        high = tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips();
-        low = tableRepresentation.getBetThreshold();
+        maxSliderValue = tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips();
 
-        // Threshold
-        // TODO: update this when the player raises
+        raiseSlider.setMax(maxSliderValue);
+        raiseSlider.setValue(Math.min(maxSliderValue, raiseSlider.getValue()));  // Clamp current value
 
         // Enable/Disable Buttons
         boolean isYourTurn = tableRepresentation.getYourIndex() == tableRepresentation.getWaitingForIndex();
         foldButton.setDisable(!isYourTurn);
         checkButton.setDisable(!isYourTurn || tableRepresentation.getBetThreshold() != tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).bet());
         callButton.setDisable(!isYourTurn || tableRepresentation.getBetThreshold() <= tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).bet());
-        raiseButton.setDisable(!isYourTurn || tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips() < tableRepresentation.getBetThreshold());
+        raiseButton.setDisable(!isYourTurn || tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips() <= tableRepresentation.getBetThreshold());
         allInButton.setDisable(!isYourTurn || tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips() <= 0);
+
+        List<Card> myHand = tableRepresentation.getMyHand();
+        System.out.println("Number of cards in hand: " + myHand.size());        // TODO: smazat kontrolni vypis
     }
 
+    // Updates the chat area with all messages received from the server
     private void updateChatArea(List<ChatMessage> messages) {
         Platform.runLater(() -> {
             chatArea.getChildren().clear();

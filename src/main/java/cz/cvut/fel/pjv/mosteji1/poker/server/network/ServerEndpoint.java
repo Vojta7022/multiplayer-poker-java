@@ -1,10 +1,12 @@
 package cz.cvut.fel.pjv.mosteji1.poker.server.network;
 
 import cz.cvut.fel.pjv.mosteji1.poker.client.gameRepresentation.TableRepresentation;
+import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
 import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.logging.Logger;
 
 /**
  * {@code ServerEndpoint} handles communication with a connected client.
@@ -12,6 +14,9 @@ import java.net.Socket;
  * and sends updates back to the client.
  */
 public class ServerEndpoint implements Runnable {
+
+    private static final Logger logger = Logger.getLogger(ServerEndpoint.class.getName());
+
     // Socket for communication with the client
     private final Socket clientSocket;
     // Streams for input and output
@@ -26,6 +31,7 @@ public class ServerEndpoint implements Runnable {
     // Client's name and avatar index
     private String name;
     private int avatarIndex;
+    private Player playerPTR;
 
     /**
      * Constructs a new server endpoint for a connected client.
@@ -60,13 +66,13 @@ public class ServerEndpoint implements Runnable {
                 try {
                     avatarIndex = Integer.parseInt(avatarStr);
                 } catch (NumberFormatException e) {
-                    System.out.println("Invalid avatar index received from client: " + avatarStr);
+                    logger.severe("Invalid avatar index received from client: " + avatarStr);
                     close();
                     return;
                 }
-                System.out.println("Client connected: " + name + ", Avatar index: " + avatarIndex);
+                logger.info("Client connected: " + name + ", Avatar index: " + avatarIndex);
             } catch (IOException e) {
-                System.err.println("Error reading initial client data: " + e.getMessage());
+                logger.severe("Error reading initial client data: " + e.getMessage());
                 close();
                 return;
             }
@@ -78,7 +84,7 @@ public class ServerEndpoint implements Runnable {
             }
         } catch (IOException e) {
             if (isActive) {
-                System.err.println("Communication error with client " + name + ": " + e.getMessage());
+                logger.severe("Communication error with client " + name + ": " + e.getMessage());
             }
         } finally {
             close();
@@ -87,26 +93,25 @@ public class ServerEndpoint implements Runnable {
 
     // Parses and handles commands sent by the client
     private void handleClientMessage(String message) {
+        String[] parts = message.split(" ", 2);
+        String command = parts[0];
+
         if (!parentServer.isGameStarted()) {
-            System.out.println("Game has not started yet. Ignoring message: " + message);
+            logger.warning("Game has not started yet. Ignoring message: " + message);
             return;
         }
 
         int currentPlayerIndex = parentServer.getTable().getWaitingForIndex();
-        int thisPlayerIndex = parentServer.getTable().getPlayers().indexOf(
-                parentServer.getTable().getPlayerByName(name));
-        if (currentPlayerIndex != thisPlayerIndex) {
-            System.out.println("It's not " + name + "'s turn. Ignoring message: " + message);
+        int thisPlayerIndex = parentServer.getTable().getPlayers().indexOf(playerPTR);
+        if (currentPlayerIndex != thisPlayerIndex && !command.equals("CHAT")) {
+            logger.warning("It's not " + name + "'s turn. Ignoring message: " + message);
             return;
         }
-
-        String[] parts = message.split(" ", 2);
-        String command = parts[0];
 
         switch (command) {
             case "CHAT" -> {
                 if (parts.length < 2) {
-                    System.out.println("CHAT command requires a message.");
+                    logger.warning("CHAT command requires a message.");
                     return;
                 }
                 handleChatMessage(parts[1]);
@@ -116,37 +121,42 @@ public class ServerEndpoint implements Runnable {
             case "CHECK" -> handleCheck();
             case "RAISE" -> {
                 if (parts.length < 2) {
-                    System.out.println("RAISE command requires an amount.");
+                    logger.warning("RAISE command requires an amount.");
                     return;
                 }
                 try {
                     int raiseAmount = Integer.parseInt(parts[1]);
                     if (raiseAmount <= 0) {
-                        System.out.println("Raise amount must be positive.");
+                        logger.warning("Raise amount must be positive.");
                         return;
                     }
                     handleRaise(raiseAmount);
                 } catch (NumberFormatException e) {
-                    System.out.println("Invalid raise amount: " + parts[1]);
+                    logger.severe("Invalid raise amount: " + parts[1]);
                 }
             }
             case "ALLIN" -> handleAllIn();
-            default -> System.out.println("Unknown command: " + message);
+            default -> logger.warning("Unknown command: " + message);
         }
+
+        if (parentServer.getTable().getChatMessages().size() > 20) {
+            parentServer.getTable().getChatMessages().removeFirst();
+        }
+
     }
 
     // Handles chat messages from the client
     private void handleChatMessage(String chatMessage) {
-        System.out.println("Chat message from client " + name + ": " + chatMessage);
+        logger.fine("Chat message from client " + name + ": " + chatMessage);
         parentServer.getTable().appendMessageToChat(name + ": " + chatMessage, false);
         parentServer.sendUpdatesToAllPlayers();
     }
 
     // Handles fold commands from the client
     private void handleFold() {
-        System.out.println(name + " has requested to fold.");
+        logger.fine(name + " has requested to fold.");
         if (!parentServer.getCommandQueue().offer("FOLD")) {
-            System.out.println("Server busy, fold command not accepted.");
+            logger.severe("Server busy, fold command not accepted.");
             return;
         }
         parentServer.sendUpdatesToAllPlayers();
@@ -154,9 +164,9 @@ public class ServerEndpoint implements Runnable {
 
     // Handles call commands from the client
     private void handleCall() {
-        System.out.println(name + " has requested to call.");
+        logger.fine(name + " has requested to call.");
         if (!parentServer.getCommandQueue().offer("CALL")) {
-            System.out.println("Server busy, call command not accepted.");
+            logger.severe("Server busy, call command not accepted.");
             return;
         }
         parentServer.sendUpdatesToAllPlayers();
@@ -164,9 +174,9 @@ public class ServerEndpoint implements Runnable {
 
     // Handles check commands from the client
     private void handleCheck() {
-        System.out.println(name + " has requested to check.");
+        logger.fine(name + " has requested to check.");
         if (!parentServer.getCommandQueue().offer("CHECK")) {
-            System.out.println("Server busy, check command not accepted.");
+            logger.severe("Server busy, check command not accepted.");
             return;
         }
         parentServer.sendUpdatesToAllPlayers();
@@ -174,9 +184,9 @@ public class ServerEndpoint implements Runnable {
 
     // Handles raise commands from the client
     private void handleRaise(int amount) {
-        System.out.println(name + " has requested to raise by " + amount);
+        logger.fine(name + " has requested to raise by " + amount);
         if (!parentServer.getCommandQueue().offer("RAISE") || !parentServer.getCommandQueue().offer(String.valueOf(amount))) {
-            System.out.println("Server busy, raise command not accepted.");
+            logger.severe("Server busy, raise command not accepted.");
             return;
         }
         parentServer.sendUpdatesToAllPlayers();
@@ -184,9 +194,9 @@ public class ServerEndpoint implements Runnable {
 
     // Handles all-in commands from the client
     private void handleAllIn() {
-        System.out.println(name + " has requested to go all-in.");
+        logger.fine(name + " has requested to go all-in.");
         if (!parentServer.getCommandQueue().offer("ALLIN")) {
-            System.out.println("Server busy, all-in command not accepted.");
+            logger.severe("Server busy, all-in command not accepted.");
             return;
         }
         parentServer.sendUpdatesToAllPlayers();
@@ -203,8 +213,7 @@ public class ServerEndpoint implements Runnable {
             objectOutputStream.writeObject(tableRepresentation);
             objectOutputStream.flush();
         } catch (NotSerializableException e) {
-            System.err.println("Serialization error in sendTableRepresentation: " + e.getMessage());
-            e.printStackTrace();
+            logger.severe("Serialization error in sendTableRepresentation: " + e.getMessage());
         }
     }
 
@@ -215,6 +224,15 @@ public class ServerEndpoint implements Runnable {
      */
     public String getName() {
         return name;
+    }
+
+    /**
+     * Renames the ServerEndpoint's name, used for avoiding duplicate names.
+     *
+     * @param name the new name
+     */
+    public void setName(String name) {
+        this.name = name;
     }
 
     /**
@@ -234,18 +252,27 @@ public class ServerEndpoint implements Runnable {
         try {
             if (input != null) input.close();
         } catch (IOException e) {
-            System.err.println("Error closing input: " + e.getMessage());
+            logger.severe("Error closing input: " + e.getMessage());
         }
         if (output != null) output.close();
         try {
             if (objectOutputStream != null) objectOutputStream.close();
         } catch (IOException e) {
-            System.err.println("Error closing ObjectOutputStream: " + e.getMessage());
+            logger.severe("Error closing ObjectOutputStream: " + e.getMessage());
         }
         try {
             if (clientSocket != null && !clientSocket.isClosed()) clientSocket.close();
         } catch (IOException e) {
-            System.err.println("Error closing socket: " + e.getMessage());
+            logger.severe("Error closing socket: " + e.getMessage());
         }
+    }
+
+    /**
+     * Sets the player object associated with this endpoint.
+     *
+     * @param player the player object to associate
+     */
+    public void setPlayerPTR(Player player) {
+        this.playerPTR = player;
     }
 }

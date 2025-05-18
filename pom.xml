@@ -43,6 +43,12 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.15.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -65,14 +71,17 @@
                         <!-- Default configuration for running with: mvn clean javafx:run -->
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>cz.cvut.fel.pjv.mosteji1.poker/cz.cvut.fel.pjv.mosteji1.poker.TheMain
-                            </mainClass>
+                            <mainClass>cz.cvut.fel.pjv.mosteji1.poker/cz.cvut.fel.pjv.mosteji1.poker.ClientMain</mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>
                             <jlinkImageName>app</jlinkImageName>
                             <noManPages>true</noManPages>
                             <stripDebug>true</stripDebug>
                             <noHeaderFiles>true</noHeaderFiles>
+                            <jvmArgs>
+                                --enable-native-access=ALL-UNNAMED
+                                -Dprism.marlin=false
+                            </jvmArgs>
                         </configuration>
                     </execution>
                 </executions>

@@ -20,17 +20,48 @@ import javafx.util.Pair;
 import java.io.File;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Logger;
 
+/**
+ * Represents the main menu view of the Poker Texas Hold'em client application.
+ * <p>
+ * This view allows the user to enter the IP address, port, player name, and select an avatar,
+ * as well as connect to the server or load saved game configuration from a JSON file.
+ * </p>
+ *
+ * Components:
+ * <ul>
+ *     <li>Text fields for IP, port, and player name</li>
+ *     <li>ComboBox for avatar selection with preview images</li>
+ *     <li>Buttons for connecting to a game or loading saved data</li>
+ *     <li>Status label for showing feedback</li>
+ * </ul>
+ *
+ * Styles and layout are applied using CSS classes and background image.
+ */
 public class MenuView extends VBox {
+
+    private static final Logger logger = Logger.getLogger(MenuView.class.getName());
+
+    /** Button to connect to the game server. */
     public final Button connectButton;
+    /** Button to load game configuration from a file. */
     public final Button loadButton;
+    /** Text field for entering the server's IP address. */
     public static final TextField ipField = new TextField();
+    /** Text field for entering the server's port. */
     public static final TextField portField = new TextField();
+    /** Text field for entering the player's name. */
     public static final TextField playerNameField = new TextField();
+    /** Label displaying connection or loading status. */
     public static final Label statusLabel = new Label();
+    /** ComboBox for selecting an avatar, shown with images. */
     public static final ComboBox<Pair<String, Image>> avatarComboBox = new ComboBox<>();
 
-
+    /**
+     * Constructs a new instance of {@code MenuView}, setting up all GUI elements,
+     * including background, layout, input fields, buttons, and avatar selection.
+     */
     public MenuView() {
         BackgroundImage backgroundImage = new BackgroundImage(
                 new Image("/menu_background.png", 900, 600, false, true),
@@ -123,6 +154,14 @@ public class MenuView extends VBox {
         getChildren().addAll(welcome, ipField, portField, playerNameField, avatarComboBox, connectButton, loadButton, statusLabel);
     }
 
+    /**
+     * Loads saved game configuration (IP, port, player name, avatar index) from
+     * a JSON file located in the resource folder under the name {@code game_data.json}.
+     * <p>
+     * If successful, updates the corresponding input fields and avatar selection.
+     * Displays success or error message in the {@code statusLabel}.
+     * </p>
+     */
     private void loadGameData() {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -147,7 +186,7 @@ public class MenuView extends VBox {
             statusLabel.setText("Values loaded successfully.");
         } catch (Exception e) {
             statusLabel.setText("Error loading data.");
-            e.printStackTrace();
+            logger.severe("Error loading game data: " + e.getMessage());
         }
     }
 }

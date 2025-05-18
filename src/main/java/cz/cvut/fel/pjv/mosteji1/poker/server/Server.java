@@ -11,6 +11,8 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.Logger;
+
 import static java.lang.Thread.interrupted;
 
 /**
@@ -18,6 +20,8 @@ import static java.lang.Thread.interrupted;
  * It handles player registration, game start, and communication between players.
  */
 public class Server {
+
+    private static final Logger logger = Logger.getLogger(Server.class.getName());
 
     // List of ServerEndpoint instances representing connected clients
     private final List<ServerEndpoint> serverEndpoints = Collections.synchronizedList(new ArrayList<>());
@@ -57,10 +61,10 @@ public class Server {
             ServerSocket serverSocket = new ServerSocket(GameParameters.PORT);
 
             String serverIp = getExternalIP();
-            System.out.println("Server started on IP: " + serverIp + ", port " + GameParameters.PORT);
+            logger.info("Server started on IP: " + serverIp + ", port " + GameParameters.PORT);
 
             // Accepting incoming client connections
-            System.out.println("Waiting for clients to connect...");
+            logger.info("Waiting for clients to connect...");
 
             Thread acceptClients = acceptClients(serverSocket);
 
@@ -71,17 +75,17 @@ public class Server {
                     gameStarted = true;
                     startGame();
                 } else if (command.equalsIgnoreCase("exit")) {
-                    System.out.println("Exiting server...");
+                    logger.info("Exiting server...");
                     serverSocket.close();
                     shutdown(serverSocket);
                     return;
                 } else {
-                    System.out.println("Unknown command. Use 'start' to start the game or 'exit' to exit.");
+                    logger.warning("Unknown command. Use 'start' to start the game or 'exit' to exit.");
                 }
             }
 
         } catch (IOException e) {
-            System.err.println("Error starting server: " + e.getMessage());
+            logger.severe("Error starting server: " + e.getMessage());
         }
     }
 
@@ -93,7 +97,7 @@ public class Server {
             }
             serverSocket.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.severe("Error shutting down server: " + e.getMessage());
         }
     }
 
@@ -106,12 +110,12 @@ public class Server {
                     clientSocket = serverSocket.accept();
                 } catch (IOException e) {
                     if (Thread.currentThread().isInterrupted()) {
-                        System.out.println("Accept thread interrupted, stopping...");
+                        logger.info("Accept thread interrupted, stopping...");
                         break;
                     }
                     throw new RuntimeException(e);
                 }
-                System.out.println("New client connected: " + clientSocket.getInetAddress());
+                logger.info("New client connected: " + clientSocket.getInetAddress());
 
                 ServerEndpoint serverEndpoint = new ServerEndpoint(clientSocket, this);
                 addClientHandler(serverEndpoint);
@@ -128,12 +132,20 @@ public class Server {
     // Starts the game when enough players are connected, initializes the game table and manages the game loop.
     private void startGame() {
         if (serverEndpoints.size() >= GameParameters.MIN_PLAYERS && serverEndpoints.size() <= GameParameters.MAX_PLAYERS) {
+            List<String> takenNames = new ArrayList<>();
+            for (ServerEndpoint serverEndpoint : serverEndpoints) {
+                String name = serverEndpoint.getName();
+                while (takenNames.contains(name)) {
+                    serverEndpoint.setName(name + "2");
+                }
+                takenNames.add(name);
+            }
             table.addPlayers(serverEndpoints);
 
-            System.out.println("Game started with " + serverEndpoints.size() + " players.");
+            logger.info("Game started with " + serverEndpoints.size() + " players.");
         }
         else {
-            System.out.println("Invalid number of players. Game cannot start.");
+            logger.warning("Invalid number of players. Game cannot start.");
             return;
         }
 
@@ -147,7 +159,7 @@ public class Server {
                     table.startRound();
                 }
             } catch (InterruptedException e) {
-                System.err.println("Game loop interrupted: " + e.getMessage());
+                logger.severe("Game loop interrupted: " + e.getMessage());
             }
         });
         gameLoop.start();
@@ -160,7 +172,7 @@ public class Server {
      */
     public void addClientHandler(ServerEndpoint serverEndpoint) {
         serverEndpoints.add(serverEndpoint);
-        System.out.println("New client added.");
+        logger.info("New client added.");
     }
 
     /**
@@ -175,12 +187,11 @@ public class Server {
         TableRepresentation ret = new TableRepresentation();
 
         for (Player player : table.getPlayers()) {
-            ret.addPlayer(player.getName(), player.getAvatarIndex(), player.getChips(), player.getBet(), player.hasFolded(), player.isAllIn());
+            ret.addPlayer(player.getName(), player.getAvatarIndex(), player.getChips(), player.getBet(), player.hasFolded(), player.isAllIn(), player.getHand());
         }
 
         ret.setPotSize(table.getPotSize());
         ret.setBetThreshold(table.getBetThreshold());
-        /*ret.setDealerIndex( ( table.getDealerIndex() - playersIndex ) % table.getPlayers().size() );*/
         ret.setDealerIndex(table.getDealerIndex());
         ret.setMyHand(new ArrayList<>(receiver.getHand()));
         ret.setCommunityCards(new ArrayList<>(table.getCommunityCards()));
@@ -195,14 +206,20 @@ public class Server {
      * Sends an updated table representation to all connected players.
      */
     public void sendUpdatesToAllPlayers() {
-        System.out.println("Sending updates to all players...");
+        try {
+            Thread.sleep(200);
+        }
+        catch (InterruptedException e) {
+            logger.severe("Error during sleep: " + e.getMessage());
+        }
+
         for (Player player : table.getPlayers()) {
             TableRepresentation representation = getTableRepresentation(player, table.getPlayers().indexOf(player));
             try {
                 player.getEndpoint().sendTableRepresentation(representation);
-                System.out.println("Sent table representation to player " + player.getName());
+                logger.info("Sent table representation to player " + player.getName());
             } catch (IOException e) {
-                System.err.println("Error sending update to player " + player.getName() + ": " + e.getMessage());
+                logger.severe("Error sending update to player " + player.getName() + ": " + e.getMessage());
             }
         }
     }
@@ -249,7 +266,7 @@ public class Server {
             }
 
         } catch (SocketException e) {
-            e.printStackTrace();
+            logger.severe("Error getting external IP: " + e.getMessage());
         }
         return "Unknown IP";
     }
