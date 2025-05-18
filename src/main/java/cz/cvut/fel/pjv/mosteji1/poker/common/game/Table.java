@@ -72,7 +72,7 @@ public class Table {
         dealHoleCards();
         logger.fine("Dealing hole cards...");
 
-        waitingForIndex = (dealerIndex + 1) % players.size();
+        waitingForIndex = (dealerIndex + 3) % players.size();
         parent.sendUpdatesToAllPlayers();
 
         letPlayersBet((dealerIndex + 3) % players.size());        // start from player to the left of big blind
@@ -117,7 +117,6 @@ public class Table {
         deck = new Deck();
         potSize = 0;
         betThreshold = 0;
-        waitingForIndex = 0;
         dealerIndex = 0;
 
         for (Player player : players) {
@@ -126,6 +125,8 @@ public class Table {
             player.setAllIn(false);
             player.setFolded(false);
         }
+
+        waitingForIndex = (dealerIndex + 1) % players.size();
 
         parent.sendUpdatesToAllPlayers();
     }
@@ -506,8 +507,11 @@ public class Table {
      * @param message         The message to add.
      * @param isSystemMessage Whether the message is from the system or a player.
      */
-    public void appendMessageToChat(String message, boolean isSystemMessage) {
+    public synchronized void appendMessageToChat(String message, boolean isSystemMessage) {
         chatMessages.add(new ChatMessage(message, isSystemMessage));
+        if (chatMessages.size() > 20) {
+            chatMessages.removeFirst();
+        }
     }
 
     /**

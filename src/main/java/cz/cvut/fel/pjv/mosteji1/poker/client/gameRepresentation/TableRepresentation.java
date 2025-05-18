@@ -30,6 +30,7 @@ public class TableRepresentation implements Serializable {
     private int yourIndex;
     // ArrayList to hold chat messages
     private ArrayList<ChatMessage> chatMessages = new ArrayList<>();
+    private boolean isGameStarted;
 
     /**
      * Constructs a new empty TableRepresentation with default values.
@@ -41,6 +42,7 @@ public class TableRepresentation implements Serializable {
         this.betThreshold = 0;
         this.dealerIndex = 0;
         this.waitingForIndex = 0;
+        this.isGameStarted = false;
     }
 
     /**
@@ -211,5 +213,47 @@ public class TableRepresentation implements Serializable {
      */
     public void setChatMessages(ArrayList<ChatMessage> chatMessages) {
         this.chatMessages = chatMessages;
+    }
+
+    /**
+     * Checks if the game has started.
+     *
+     * @return true if the game has started, false otherwise
+     */
+    public boolean isGameStarted() {
+        return isGameStarted;
+    }
+
+    /**
+     * Returns a string representation of the table representation.
+     *
+     * @return string representation of the table
+     */
+    public String toString() {
+        StringBuilder playerListString = new StringBuilder();
+        for (PlayerRepresentation player : players) {
+            playerListString.append(player.toString()).append("\n");
+        }
+
+        return "TableRepresentation{" +
+                "players=" + playerListString +
+                ", communityCards=" + communityCards +
+                ", potSize=" + potSize +
+                ", betThreshold=" + betThreshold +
+                ", dealerIndex=" + dealerIndex +
+                ", waitingForIndex=" + waitingForIndex +
+                ", myHand=" + myHand +
+                ", yourIndex=" + yourIndex +
+                ", chatMessages=" + chatMessages +
+                '}';
+    }
+
+    /**
+     * Sets the game started status.
+     *
+     * @param gameStarted true if the game has started, false otherwise
+     */
+    public void setGameStarted(boolean gameStarted) {
+        this.isGameStarted = gameStarted;
     }
 }

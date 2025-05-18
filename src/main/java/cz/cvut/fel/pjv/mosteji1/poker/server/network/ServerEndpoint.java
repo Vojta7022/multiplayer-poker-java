@@ -5,6 +5,7 @@ import cz.cvut.fel.pjv.mosteji1.poker.common.player.Player;
 import cz.cvut.fel.pjv.mosteji1.poker.server.Server;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.net.Socket;
 import java.util.logging.Logger;
 
@@ -138,11 +139,6 @@ public class ServerEndpoint implements Runnable {
             case "ALLIN" -> handleAllIn();
             default -> logger.warning("Unknown command: " + message);
         }
-
-        if (parentServer.getTable().getChatMessages().size() > 20) {
-            parentServer.getTable().getChatMessages().removeFirst();
-        }
-
     }
 
     // Handles chat messages from the client
@@ -274,5 +270,9 @@ public class ServerEndpoint implements Runnable {
      */
     public void setPlayerPTR(Player player) {
         this.playerPTR = player;
+    }
+
+    public Boolean getSocket() {
+        return clientSocket != null && !clientSocket.isClosed();
     }
 }

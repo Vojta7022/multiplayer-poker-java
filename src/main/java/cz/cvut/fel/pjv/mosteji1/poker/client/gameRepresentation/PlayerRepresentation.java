@@ -19,4 +19,17 @@ import java.util.ArrayList;
  */
 public record PlayerRepresentation(String name, int avatarIndex, int chips, int bet, boolean folded, boolean isAllIn, ArrayList<Card> myHand) implements Serializable {
 
+    /**
+     * Returns a string representation of the player.
+     * @return String representation of the player.
+     */
+    public String toString() {
+        return "Player: " + name + "\n" +
+                "Avatar Index: " + avatarIndex + "\n" +
+                "Chips: " + chips + "\n" +
+                "Bet: " + bet + "\n" +
+                "Folded: " + folded + "\n" +
+                "All In: " + isAllIn + "\n" +
+                "Hand: " + myHand + "\n";
+    }
 }

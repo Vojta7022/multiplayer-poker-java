@@ -69,9 +69,6 @@ public class ClientMain extends Application {
         // Other images
         sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/card_back.png"))));   // 52
         sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/card_placeholder.png")))); // 53
-        sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/button_absent.png"))));  // 54
-        sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/button_present.png")))); // 55
-        sprites.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/menu_background.png")))); // 56
 
         // Avatars
         for (int i = 0; i < GameParameters.AVATAR_COUNT; i++) {

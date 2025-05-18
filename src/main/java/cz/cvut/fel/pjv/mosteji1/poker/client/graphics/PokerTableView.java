@@ -54,7 +54,9 @@ public class PokerTableView extends BorderPane {
 
     // Raise slider for increasing the bet
     private final Slider raiseSlider;
-    private int maxSliderValue;
+    private final Label raiseValueLabel;
+    private final boolean[] raiseMode = {false};
+    private int maxSliderValue = GameParameters.STARTING_CHIPS - 1;
 
     /**
      * Constructs the PokerTableView and initializes all graphical components.
@@ -83,10 +85,11 @@ public class PokerTableView extends BorderPane {
         raiseButton = new Button("Raise");
         allInButton = new Button("All In!");
 
-        final boolean[] raiseMode = {false};
-        maxSliderValue = GameParameters.STARTING_CHIPS;
+        Button cancelRaiseButton = new Button("Cancel Raise");
+        cancelRaiseButton.setVisible(false);
+        cancelRaiseButton.getStyleClass().add("fancy-button");
 
-        raiseSlider = new Slider(0, maxSliderValue, 50); // low, high, initial value
+        raiseSlider = new Slider(1, maxSliderValue, 50); // low, high, initial value
         raiseSlider.setShowTickLabels(true);
         raiseSlider.setShowTickMarks(true);
         raiseSlider.setMajorTickUnit(100);
@@ -94,7 +97,7 @@ public class PokerTableView extends BorderPane {
         raiseSlider.setPrefWidth(300);
         raiseSlider.setVisible(false); // hidden by default
 
-        Label raiseValueLabel = new Label("Raise: $50");
+        raiseValueLabel = new Label("Raise: $50");
         raiseValueLabel.setStyle("-fx-text-fill: #C8E6C9; -fx-font-size: 16px;");
         raiseValueLabel.setVisible(false);
 
@@ -103,17 +106,33 @@ public class PokerTableView extends BorderPane {
             raiseValueLabel.setText("Raise: $" + raiseValue);
         });
 
-        foldButton.setOnAction(_ -> clientEndpoint.sendMessage("FOLD"));
-        checkButton.setOnAction(_ -> clientEndpoint.sendMessage("CHECK"));
-        raiseButton.setOnAction(_ -> clientEndpoint.sendMessage("RAISE"));
-        callButton.setOnAction(_ -> clientEndpoint.sendMessage("CALL"));
-        allInButton.setOnAction(_ -> clientEndpoint.sendMessage("ALLIN"));
+        foldButton.setOnAction(_ -> {
+            hideRaiseSlider();
+            clientEndpoint.sendMessage("FOLD");
+        });
+        checkButton.setOnAction(_ -> {
+            hideRaiseSlider();
+            clientEndpoint.sendMessage("CHECK");
+        });
+        raiseButton.setOnAction(_ -> {
+            hideRaiseSlider();
+            clientEndpoint.sendMessage("RAISE");
+        });
+        callButton.setOnAction(_ -> {
+            hideRaiseSlider();
+            clientEndpoint.sendMessage("CALL");
+        });
+        allInButton.setOnAction(_ -> {
+            hideRaiseSlider();
+            clientEndpoint.sendMessage("ALLIN");
+        });
 
         raiseButton.setOnAction(_ -> {
             if (!raiseMode[0]) {
                 // First click - show slider
                 raiseSlider.setVisible(true);
                 raiseValueLabel.setVisible(true);
+                cancelRaiseButton.setVisible(true);
                 raiseButton.setText("Confirm Raise");
                 raiseMode[0] = true;
             } else {
@@ -122,9 +141,15 @@ public class PokerTableView extends BorderPane {
                 clientEndpoint.sendMessage("RAISE " + raiseAmount);
                 raiseSlider.setVisible(false);
                 raiseValueLabel.setVisible(false);
+                cancelRaiseButton.setVisible(false);
                 raiseButton.setText("Raise");
                 raiseMode[0] = false;
             }
+        });
+
+        cancelRaiseButton.setOnAction(_ -> {
+            cancelRaiseButton.setVisible(false);
+            hideRaiseSlider();
         });
 
         foldButton.getStyleClass().add("fancy-button");
@@ -135,12 +160,12 @@ public class PokerTableView extends BorderPane {
         raiseSlider.getStyleClass().add("raise-slider");
         raiseValueLabel.getStyleClass().add("raise-label");
 
-        HBox actionButtons = new HBox(20, foldButton, checkButton, callButton, raiseButton, allInButton);
+        HBox actionButtons = new HBox(20, foldButton, checkButton, callButton, raiseButton, allInButton, cancelRaiseButton);
         actionButtons.setAlignment(Pos.CENTER);
 
         playerCards = new HBox(10,
-                createCardPlaceholder(),
-                createCardPlaceholder()
+                createCardPlaceholder(false),
+                createCardPlaceholder(false)
         );
         playerCards.setAlignment(Pos.CENTER);
         playerCards.setPadding(new Insets(20,20,20,20));
@@ -155,7 +180,7 @@ public class PokerTableView extends BorderPane {
         // Middle: community cards
         communityCards = new HBox(20);
         for (int i = 1; i <= 5; i++) {
-            communityCards.getChildren().add(createCardPlaceholder());
+            communityCards.getChildren().add(createCardPlaceholder(false));
         }
         communityCards.setAlignment(Pos.CENTER);
         communityCards.setPadding(new Insets(20, 0, 10, 0));
@@ -233,11 +258,16 @@ public class PokerTableView extends BorderPane {
     }
 
     // Creates a placeholder for a card image
-    private VBox createCardPlaceholder() {
+    private VBox createCardPlaceholder(boolean isGameStarted) {
         VBox box = new VBox();
-        ImageView card = new ImageView(ClientMain.sprites.get(getSpriteIndex(MyUtils.Sprites.CARD_PLACEHOLDER)));
-        card.setFitWidth(100);
-        card.setFitHeight(150);
+        ImageView card;
+        if (isGameStarted) {
+            card = new ImageView(ClientMain.sprites.get(getSpriteIndex(MyUtils.Sprites.CARD_BACK)));
+        } else {
+            card = new ImageView(ClientMain.sprites.get(getSpriteIndex(MyUtils.Sprites.CARD_PLACEHOLDER)));
+        }
+        card.setFitWidth(130);
+        card.setFitHeight(195);
         box.getChildren().add(card);
         box.setAlignment(Pos.CENTER);
         return box;
@@ -305,22 +335,22 @@ public class PokerTableView extends BorderPane {
 
         for (int i = 0; i < tableRepresentation.getCommunityCards().size(); i++) {
             ImageView card = new ImageView(ClientMain.sprites.get(getSpriteIndex(tableRepresentation.getCommunityCards().get(i))));
-            card.setFitWidth(100);
-            card.setFitHeight(150);
+            card.setFitWidth(130);
+            card.setFitHeight(195);
 
             communityCards.getChildren().add(card);
         }
         // Add placeholders for remaining community cards
         for (int i = tableRepresentation.getCommunityCards().size(); i < 5; i++) {
-            communityCards.getChildren().add(createCardPlaceholder());
+            communityCards.getChildren().add(createCardPlaceholder(tableRepresentation.isGameStarted()));
         }
 
         playerCards.getChildren().clear();
 
         for (Card card : tableRepresentation.getMyHand()) {
             ImageView cardView = new ImageView(ClientMain.sprites.get(getSpriteIndex(card)));
-            cardView.setFitWidth(100);
-            cardView.setFitHeight(150);
+            cardView.setFitWidth(130);
+            cardView.setFitHeight(195);
             playerCards.getChildren().add(cardView);
         }
 
@@ -331,21 +361,21 @@ public class PokerTableView extends BorderPane {
         updateChatArea(tableRepresentation.getChatMessages());
 
         // Slider values
-        maxSliderValue = tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips();
+
+        PlayerRepresentation you = tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex());
+
+        maxSliderValue = you.chips() - (tableRepresentation.getBetThreshold() - you.bet()) - 1;
 
         raiseSlider.setMax(maxSliderValue);
-        raiseSlider.setValue(Math.min(maxSliderValue, raiseSlider.getValue()));  // Clamp current value
+        raiseSlider.setValue(Math.min(maxSliderValue, raiseSlider.getValue()));
 
         // Enable/Disable Buttons
         boolean isYourTurn = tableRepresentation.getYourIndex() == tableRepresentation.getWaitingForIndex();
         foldButton.setDisable(!isYourTurn);
-        checkButton.setDisable(!isYourTurn || tableRepresentation.getBetThreshold() != tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).bet());
-        callButton.setDisable(!isYourTurn || tableRepresentation.getBetThreshold() <= tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).bet());
-        raiseButton.setDisable(!isYourTurn || tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips() <= tableRepresentation.getBetThreshold());
-        allInButton.setDisable(!isYourTurn || tableRepresentation.getPlayers().get(tableRepresentation.getYourIndex()).chips() <= 0);
-
-        List<Card> myHand = tableRepresentation.getMyHand();
-        System.out.println("Number of cards in hand: " + myHand.size());        // TODO: smazat kontrolni vypis
+        checkButton.setDisable(!isYourTurn || tableRepresentation.getBetThreshold() != you.bet());
+        callButton.setDisable(!isYourTurn || tableRepresentation.getBetThreshold() <= you.bet());
+        raiseButton.setDisable(!isYourTurn || you.chips() <= tableRepresentation.getBetThreshold());
+        allInButton.setDisable(!isYourTurn || you.chips() <= 0);
     }
 
     // Updates the chat area with all messages received from the server
@@ -360,5 +390,13 @@ public class PokerTableView extends BorderPane {
                 chatArea.getChildren().add(textNode);
             }
         });
+    }
+
+    // Hides raise slider when clicked on another action button
+    private void hideRaiseSlider() {
+        raiseSlider.setVisible(false);
+        raiseValueLabel.setVisible(false);
+        raiseButton.setText("Raise");
+        raiseMode[0] = false;
     }
 }
