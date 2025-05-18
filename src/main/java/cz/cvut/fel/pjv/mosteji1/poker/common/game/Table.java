@@ -172,7 +172,10 @@ public class Table {
         String message = winnersString + "win(s) with " + runningCombo.getHandRanking();
         logger.fine(message);
         appendMessageToChat(message, true);
-        message = "Chosen winning hand(s): " + runningWinners.getFirst().getHand() + " and community cards: " + communityCards;
+        message = "Winning hands:\n";
+        for (Player player : runningWinners) {
+            message += player.getName() + ": " + player.getHand() + "\n";
+        }
         logger.fine(message);
         appendMessageToChat(message, true);
         return runningWinners;
